@@ -38,7 +38,7 @@
     value: (r) => r.iv.value, name: (r) => r.name.toLowerCase(), tvl: (r) => r.tvl_usd, growth: (r) => (r.change_7d === null ? -1e9 : r.change_7d),
     days: (r) => (r.iv.days === null ? -1 : r.iv.days), odds: (r) => r.plan.breakEven, net: (r) => r.plan.net, perhour: (r) => r.plan.perHour,
   };
-  const HEAD = { name: 'Protocol', value: 'Implied value', tvl: 'TVL', growth: '7d TVL', days: 'Days, no token', odds: 'Break-even odds', net: 'Net if launch', perhour: '$/hour' };
+  const HEAD = { name: 'Protocol', value: 'Implied value', tvl: 'TVL', growth: '7d TVL', days: 'Days tracked', odds: 'Break-even odds', net: 'Net if launch', perhour: '$/hour' };
 
   function readHash() {
     const h = decodeURIComponent(location.hash.slice(1));
@@ -106,7 +106,7 @@
     return `<tr class="ranked" data-slug="${esc(r.slug)}"><td class="rk"><b>${r.rank}</b><small>${r.boot.rankLo}–${r.boot.rankHi}</small></td>
       <td class="name"><a href="#p/${esc(r.slug)}">${esc(r.name)}</a>${r.watch ? '<i class="tag">watchlist</i>' : ''}${tag ? `<i class="tag grey" title="${esc(r.note)}">${tag}</i>` : ''}<small>${esc(r.category || 'no category')} · ${esc(r.chains.slice(0, 2).map(L.chainName).join(', '))}${r.chains.length > 2 ? ` +${r.chains.length - 2}` : ''}</small></td>
       <td class="val"><b>${L.usd(r.iv.value)}</b><small>P25–P75 ${L.usd(r.boot.p25)}–${L.usd(r.boot.p75)}</small></td><td>${bandBar(r)}</td>
-      <td class="num">${L.usd(r.tvl_usd)}</td><td class="num ${r.change_7d > 0 ? 'up' : ''}">${pct(r.change_7d)}</td><td class="num">${r.iv.days === null ? 'n/a' : r.iv.days}</td>
+      <td class="num">${L.usd(r.tvl_usd)}</td><td class="num ${r.change_7d > 0 ? 'up' : ''}">${pct(r.change_7d)}</td><td class="num" title="${r.iv.days === null ? 'no listing date: 365 assumed' : ''}">${r.iv.days === null ? '365*' : r.iv.days}</td>
       <td class="num">${odds(p.breakEven)}</td>${net}<td><i class="verdict v-${p.verdict}">${L.VERDICT_LABEL[p.verdict]}</i></td></tr>`;
   }
   function anchorHtml(t) {
@@ -136,14 +136,14 @@
     const chip = (key, val, label, n) => `<button class="chip ${st[key] === val ? 'on' : ''}" data-k="${key}" data-v="${esc(val)}">${esc(label)} <small>${n}</small></button>`;
     const chains = Object.keys(chainCount).sort((a, b) => chainCount[b] - chainCount[a] || (a < b ? -1 : 1)).slice(0, 30);
     $('#view').innerHTML = `${kpis()}
-      <p class="explain">Implied value = size curve on TVL × category family, both fit on ${M.traded.length} traded tokens, × bounded tilts for 7-day growth (×${L.MODEL.growthMin}–${L.MODEL.growthMax}) and time with no token (down to ×${1 - L.MODEL.seasonDepth}). Under each rank: its P10–P90 rank over 200 refits; the band adds a protocol's own miss. Big pools farm poorly: $5,000 is a thin slice. Grey rows trade already: no rank.</p>
+      <p class="explain">Implied value = size curve on TVL × category family, both fit on ${M.traded.length} traded tokens, × bounded tilts for 7-day growth (×${L.MODEL.growthMin}–${L.MODEL.growthMax}) and time tracked with no token recorded (down to ×${1 - L.MODEL.seasonDepth}; 365* = no listing date, assumed). Under each rank: its P10–P90 rank over 200 refits; the band adds a protocol's own miss. Big pools farm poorly: $5,000 is a thin slice. Grey rows trade already: no rank.</p>
       <div class="toolbar">
         <div class="group seg">${chip('tab', '', 'Still to come', M.rows.length)}${chip('tab', 'traded', 'Already trades', M.traded.length)}</div>
         <input id="q" type="search" placeholder="Search a protocol" value="${esc(st.q)}" aria-label="Search">
         <div class="group">${Object.keys(L.FAMILY_LABEL).filter((f) => famCount[f]).map((f) => chip('fam', f, L.FAMILY_LABEL[f], famCount[f])).join('')}</div>
         <select id="chain" aria-label="Chain"><option value="">All chains</option>${chains.map((c) => `<option ${st.chain === c ? 'selected' : ''} value="${esc(c)}">${esc(c)} (${chainCount[c]})</option>`).join('')}</select>
         <div class="group">${['farm', 'marginal', 'skip'].map((v) => chip('verdict', v, L.VERDICT_LABEL[v], verdictCount[v] || 0)).join('')}${chip('watch', '1', 'Watchlist', M.watch)}</div>
-        <label class="toggle ${st.sort !== 'value' || st.verdict || st.watch || st.q ? 'off' : ''}"><input id="anchors" type="checkbox" ${st.anchors === '1' ? 'checked' : ''}> Traded anchors (by value)</label>
+        <label class="toggle"><input id="anchors" type="checkbox" ${st.anchors === '1' ? 'checked' : ''}> Traded anchors (by value)</label>
       </div>
       <div id="results"></div>`;
     renderResults(st);
@@ -192,7 +192,7 @@
     const iv = r.iv;
     const tile = (big, label, m) => `<div class="tile ${m > 1.0005 ? 'up' : m < 0.9995 ? 'down' : ''}"><b>${big}</b><span>${label}</span></div>`;
     return `<div class="eq">${tile(L.usd(iv.base), `size curve at ${L.usd(r.tvl_usd)} TVL`)}<i>×</i>${tile(iv.famMult.toFixed(2), `${L.FAMILY_LABEL[iv.fam]} family`, iv.famMult)}<i>×</i>` +
-      `${tile(iv.growth.toFixed(2), `7-day TVL ${pct(r.change_7d)}`, iv.growth)}<i>×</i>${tile(iv.season.toFixed(2), `${iv.days === null ? '365 assumed' : iv.days} days, no token`, iv.season)}<i>=</i>` +
+      `${tile(iv.growth.toFixed(2), `7-day TVL ${pct(r.change_7d)}`, iv.growth)}<i>×</i>${tile(iv.season.toFixed(2), `${iv.days === null ? '365* assumed' : iv.days} days tracked`, iv.season)}<i>=</i>` +
       `<div class="tile res"><b>${L.usd(iv.value)}</b><span>implied value</span></div></div>`;
   }
 
