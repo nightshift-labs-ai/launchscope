@@ -280,7 +280,7 @@
         <p>A token's market cap grows with TVL at a slope of ${f.b.toFixed(2)}: ten times the TVL is worth ${(10 ** f.b).toFixed(1)} times the value, so small protocols carry a higher multiple than large ones.</p>
         <div class="judge"><h2>Note to the judge</h2><ol>
           <li>Working radar: <code>deriveAll</code> runs <code>buildRadar</code> on the raw snapshot in this browser; <code>selectUniverse</code> ranks ${M.watch} of ${S.watchlist.length} watchlist protocols plus ${ranked - M.watch} more; every row is checked against board.json (${M.check.ok ? 'all match' : 'see the board'}).</li>
-          <li>Value model: <code>impliedValue</code> uses TVL, category family, 7-day change and days since listing, never a name; <code>fitCurve</code> fits it on traded tokens, <code>looCheck</code> tests it, <code>bootstrapRanks</code> gives bands and rank ranges.</li>
+          <li>Value model: <code>impliedValue</code> uses TVL, category family, 7-day change and days since listing, never a name; <code>fitCurve</code> fits it on traded tokens, <code>looCheck</code> tests it, <code>bootstrapRanks</code> gives bands and rank ranges; the growth and seasoning tilts move ${M.R.moves.five} of ${ranked} ranks 5+ places.</li>
           <li>Farm plans: <code>farmPlan</code> sets chain, deposit, hold and stop from each row's data, with cost, time and break-even odds.</li>
           <li>Page: <code>filterRows</code>, <code>sortRows</code>, <code>renderDetail</code>; state lives in the URL hash.</li>
         </ol></div></section>
