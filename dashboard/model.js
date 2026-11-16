@@ -30,6 +30,7 @@
     depositPerTvl: 1 / 10000,
     depositMin: 500,
     depositMax: 5000,
+    capDrop: -30, // a 7-day TVL fall past -30% caps the verdict at marginal
     gasDefault: 0.5, // a chain missing from the tiers below
     gas: {},
   };
@@ -226,7 +227,7 @@
 
   // -- honesty: out-of-sample checks and the bootstrap
 
-  // Nested variants, each adding one part: [key, label, fitted slope, family offsets, priors].
+  // Nested variants: [key, label, slope, families, priors].
   const VARIANTS = [['multiple', 'TVL x one multiple', 0, 0, 0], ['curve', '+ size curve (slope b)', 1, 0, 0],
     ['family', '+ category family', 1, 1, 0], ['full', '+ growth & seasoning priors', 1, 1, 1]]
     .map(([key, label, slope, families, priors]) => ({ key, label, slope: !!slope, families: !!families, priors: !!priors }));
@@ -306,10 +307,10 @@
   const stopDropPct = (change7d) => (change7d === null ? 20 : clamp(Math.round(2 * Math.abs(change7d)), 10, 35));
   const roundDeposit = (x) => (x < 1000 ? Math.round(x / 50) * 50 : Math.round(x / 100) * 100);
 
-  // DefiLlama chain labels a reader could take for a company, in plain words.
+  // Chain labels a reader could take for a company.
   const CHAIN_NAME = { Binance: 'BNB Chain', Ripple: 'XRP Ledger', xDai: 'Gnosis' };
   const chainName = (c) => CHAIN_NAME[c] || c;
-  // Chains with no dollar stablecoin to speak of are funded in their own coin; staking uses coin you hold.
+  // Chains with no dollar stablecoin, and staking, use the native coin.
   const NATIVE_COIN = { Bitcoin: 'BTC', CORE: 'BTC', BSquared: 'BTC', Mezo: 'BTC', 'Babylon Genesis': 'BTC', Stacks: 'BTC', RSK: 'BTC', Bittensor: 'TAO', Qubic: 'QUBIC' };
   function fundingAsset(p, chain) {
     if (/BTC$/.test(p.category || '')) return 'BTC';
@@ -382,13 +383,15 @@
     const net = slice - costs - capitalCost;
     const breakEven = (costs + capitalCost) / slice;
     const odds = Math.round(breakEven * 100); // the verdict reads the odds as shown
-    const verdict = odds <= ASSUME.farmOdds * 100 ? 'farm' : odds <= ASSUME.marginalOdds * 100 ? 'marginal' : 'skip';
-    return { chain: cn, gas, asset, deposit, weeks, drop, stopTvl, steps, costs, minutes, carry, capitalCost, slice, net, breakEven, verdict, perHour: net / (minutes / 60) };
+    const byOdds = odds <= ASSUME.farmOdds * 100 ? 'farm' : odds <= ASSUME.marginalOdds * 100 ? 'marginal' : 'skip';
+    const capped = byOdds === 'farm' && p.change_7d < ASSUME.capDrop; // null (no 7-day figure) never caps
+    const verdict = capped ? 'marginal' : byOdds;
+    return { chain: cn, gas, asset, deposit, weeks, drop, stopTvl, steps, costs, minutes, carry, capitalCost, slice, net, breakEven, verdict, capped, perHour: net / (minutes / 60) };
   }
 
   const VERDICT_LABEL = { farm: 'Worth farming', marginal: 'Marginal', skip: 'Skip' };
 
-  /** Break-even odds: the chance a token launches, with a snapshot, inside the hold, at which the plan pays. */
+  /** What the break-even odds mean for this plan. */
   function oddsText(plan, value) {
     return plan.breakEven > 1 ? `no launch chance covers it (it would need a launch worth ${usd(value * plan.breakEven)})` : `the chance a token launches, with a snapshot, inside the ${plan.weeks}-week hold`;
   }

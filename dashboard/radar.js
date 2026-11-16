@@ -1,5 +1,4 @@
-/* Launchscope page: board, detail and method views. At load it runs model.js's buildRadar on the raw
- * snapshot in data.js and checks every row against board.json. */
+/* Launchscope page: board, detail, method. At load buildRadar re-runs on the raw snapshot; each row is checked. */
 (function () {
   'use strict';
   const D = globalThis.LAUNCHSCOPE_DATA;
@@ -56,7 +55,7 @@
     history.replaceState(null, '', back);
   }
 
-  /** The rows a reader asked for: family, chain, verdict, watchlist and a name search. */
+  /** Family, chain, verdict, watchlist and name filters. */
   function filterRows(rows, st) {
     const q = st.q.trim().toLowerCase();
     return rows.filter((r) => (!st.fam || r.iv.fam === st.fam) && (!st.chain || r.chains.includes(st.chain)) &&
@@ -68,7 +67,7 @@
     return rows.slice().sort((a, b) => { const x = key(a), y = key(b); return (x < y ? -1 : x > y ? 1 : 0) * sign || a.rank - b.rank; });
   }
 
-  /** Traded tokens as unranked anchors at market cap (value order only), matching the filters, about one per six rows. */
+  /** Traded tokens as unranked anchors at market cap, about one per six rows. */
   function anchorsFor(shown, st) {
     if (st.anchors !== '1' || st.sort !== 'value' || shown.length === 0 || st.verdict || st.watch || st.q) return [];
     const top = shown[0].iv.value * 1.5, bottom = shown[shown.length - 1].iv.value / 1.5;
@@ -116,7 +115,7 @@
       <td class="num" colspan="4">market ${(t.mcap_usd / t.tvl_usd).toFixed(2)}× TVL · our curve would say ${L.usd(L.impliedValue(t, M.fit, S.as_of).value)}</td></tr>`;
   }
 
-  /** The other side of the board: every token that trades, at its market cap, beside our curve's price for its record. */
+  /** Every token that trades: market cap beside our curve's price. */
   function tradedHtml(st) {
     const q = st.q.trim().toLowerCase();
     const list = M.traded.filter((t) => (!st.fam || L.familyOf(t.category) === st.fam) && (!st.chain || t.chains.includes(st.chain)) && (!q || t.name.toLowerCase().includes(q)))
@@ -188,7 +187,7 @@
 
   // -- the detail view
 
-  /** The value as an equation: the size curve at this TVL, times each multiplier, equals the value. */
+  /** The value as an equation: size curve x each multiplier. */
   function equationHtml(r) {
     const iv = r.iv;
     const tile = (big, label, m) => `<div class="tile ${m === undefined ? '' : m > 1.0005 ? 'up' : m < 0.9995 ? 'down' : ''}"><b>${big}</b><span>${label}</span></div>`;
@@ -219,7 +218,7 @@
       <text class="stopt" x="24" y="82">${plan.steps.findIndex((s) => s.kind === 'stop') + 1} · any day: stop if TVL closes under ${L.usd(plan.stopTvl)}</text><line class="stop" x1="24" x2="684" y1="88" y2="88"/></svg>`;
   }
 
-  /** One protocol: its value, how it is built, its band and rank range, peers, and its costed plan. */
+  /** One protocol: value, build-up, band, peers and costed plan. */
   function renderDetail(slug) {
     const r = M.rows.find((x) => x.slug === slug);
     if (!r) { location.hash = ''; return; }
@@ -241,7 +240,7 @@
           <p class="assume">Our estimates: gas ${L.usd(p.gas)} a transaction on ${esc(p.chain)}, ${L.usd(A.bridgeFee)} a bridge leg, T-bills ${A.tbillRate * 100}% less the deposit's assumed yield. Deposit grows with TVL (${L.usd(A.depositMin)}–${L.usd(A.depositMax)}); younger protocols are held longer; stop = twice the 7-day swing.</p>
         </section>
         <section class="card plan">
-          <h2>Farm plan <small>${esc(p.chain)} · ${L.usd(p.deposit)} · ${p.weeks} weeks</small><i class="verdict v-${p.verdict}">${L.VERDICT_LABEL[p.verdict]}</i></h2>
+          <h2>Farm plan <small>${esc(p.chain)} · ${L.usd(p.deposit)} · ${p.weeks} weeks</small><i class="verdict v-${p.verdict}">${L.VERDICT_LABEL[p.verdict]}</i></h2>${p.capped ? `<p class="note">Capped at Marginal: TVL ${pct(r.change_7d)} in 7 days, past the ${A.capDrop}% limit; the odds alone say worth farming.</p>` : ''}
           ${timelineSvg(p)}
           <table class="steps"><thead><tr><th>#</th><th>When</th><th>Step</th><th class="num">Cost</th><th class="num">Time</th></tr></thead><tbody>${steps}</tbody></table>
           <div class="totals"><div><span>Fees and gas</span><b>${L.usd(p.costs)}</b></div><div><span>Income forgone</span><b>${L.usd(p.capitalCost)}</b></div><div><span>Your time</span><b>${Math.round(p.minutes)} min</b></div><div><span>Slice if launch</span><b>${L.usd(p.slice)}</b></div><div><span>Break-even odds</span><b>${odds(p.breakEven)}</b></div><div><span>Net per hour</span><b>${L.usd(p.perHour)}</b></div></div>
@@ -267,7 +266,7 @@
   }
 
   function renderMethod() {
-    const loo = M.R.loo, f = M.fit, u = M.R.universe;
+    const loo = M.R.loo, f = M.fit, u = M.R.universe, A = L.ASSUME;
     const looRows = loo.map((v) => `<tr><td>${esc(v.label)}</td><td class="num"><b>${v.medianMiss.toFixed(2)}×</b></td><td class="num">${v.meanLogMiss.toFixed(3)}</td><td class="num">${Math.round(v.within3x * 100)}%</td><td class="num">${v.rankCorr.toFixed(2)}</td></tr>`).join('');
     const famN = {};
     M.traded.forEach((t) => { const k = L.familyOf(t.category); famN[k] = (famN[k] || 0) + 1; });
@@ -290,7 +289,8 @@
         <p>Size curve and family earn their place. Growth and seasoning do not cut the miss (${loo[3].meanLogMiss.toFixed(3)} vs ${loo[2].meanLogMiss.toFixed(3)}): traded TVL fell almost everywhere this week, and a traded token's age is not time without a token. So both are bounded priors: growth tilts value by half the 7-day change (×${L.MODEL.growthMin}–×${L.MODEL.growthMax}); seasoning discounts a new protocol up to ${L.MODEL.seasonDepth * 100}%, fading over ${L.MODEL.seasonDays} days. A ${loo[3].medianMiss.toFixed(1)}× median miss is why every row shows a band. Rank corr. tests the ranking itself (Spearman's rho inside 8 held-out folds): about ${loo[0].rankCorr.toFixed(1)} for every variant, so order comes from TVL; the extras cut the miss, not the rank error.</p>
         <h2>Category family offsets <small>mean miss, clipped at 10×, shrunk by ${L.MODEL.familyShrinkK} pseudo-tokens (traded tokens)</small></h2><p>${fams}</p>
         <h2>From ${c.protocols} protocols to ${c.ranked} ranks</h2>
-        <p>${c.traded} trade (fit and anchors) · ${c.recorded} record a token with no market cap (not ranked) · ${c.ranked + c.set_aside} record no token: ${c.ranked} ranked, ${c.set_aside} set aside as ${Object.keys(why).map((k) => `${esc(k)} (${why[k]})`).join(', ')}.</p></section></div>`;
+        <p>${c.traded} trade (fit and anchors) · ${c.recorded} record a token with no market cap (not ranked) · ${c.ranked + c.set_aside} record no token: ${c.ranked} ranked, ${c.set_aside} set aside as ${Object.keys(why).map((k) => `${esc(k)} (${why[k]})`).join(', ')}.</p>
+        <h2>Farm verdicts</h2><p>Worth farming at break-even odds of ${A.farmOdds * 100}% or less (it pays if 1 hold in ${1 / A.farmOdds} sees a launch), marginal to ${A.marginalOdds * 100}%, else skip. A 7-day TVL fall past ${A.capDrop}% caps it at marginal (${M.rows.filter((r) => r.plan.capped).length} row here).</p></section></div>`;
   }
 
   // -- routing

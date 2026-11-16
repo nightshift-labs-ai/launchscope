@@ -40,8 +40,7 @@ td { padding: 4px 8px; border-bottom: 1px solid var(--rule); }
 .kpis span { display: block; font-size: 14px; line-height: 1.3; }
 .kpis .check { border-left-color: var(--plan); background: var(--plan-soft); padding: 8px 12px; border-radius: 0 6px 6px 0; }
 .kpis .check b { font-size: 19px; color: var(--plan); }
-.kpis .check.bad { border-left-color: var(--red); background: #f2d9d3; }
-.kpis .check.bad b { color: var(--red); }
+.kpis .check.bad, .kpis .check.bad b { border-color: var(--red); background: #f2d9d3; color: var(--red); }
 .explain { margin: 8px 0; }
 
 /* toolbar */
@@ -93,7 +92,7 @@ td { padding: 4px 8px; border-bottom: 1px solid var(--rule); }
 .card > h2:first-child { margin-top: 0; }
 .facts { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 16px; align-items: end; }
 .facts span, .totals span, .tile span { display: block; line-height: 1.25; }
-.facts b, .totals b, .eq i { font-size: 18px; }
+.facts b, .totals b, .eq i { font-size: 18px; white-space: nowrap; }
 .facts .big b { font-size: 44px; line-height: 1.05; color: var(--accent); }
 .eq { display: flex; gap: 4px; }
 .eq i { font-style: normal; align-self: center; }
