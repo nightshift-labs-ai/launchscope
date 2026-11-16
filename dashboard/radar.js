@@ -196,6 +196,14 @@
       `<div class="tile res"><b>${L.usd(iv.value)}</b><span>implied value</span></div></div>`;
   }
 
+  /** The band on a log axis, the value (dot) and, numbered, what each traded peer's multiple would make it. */
+  function bandHtml(r) {
+    const v = [r.boot.p25, r.boot.p75, r.iv.value, ...r.peers.map((t) => t.implied)].map(Math.log10);
+    const a = Math.min(...v) - 0.2, x = (u) => (100 * (Math.log10(u) - a)) / (Math.max(...v) + 0.2 - a);
+    return `<div class="bd"><i style="left:${x(r.boot.p25).toFixed(1)}%;width:${(x(r.boot.p75) - x(r.boot.p25)).toFixed(1)}%"></i>${r.peers.map((t, i) => `<em style="left:${x(t.implied).toFixed(1)}%">${i + 1}</em>`).join('')}` +
+      `<b style="left:${x(r.iv.value).toFixed(1)}%"></b><span style="left:${x(r.boot.p25).toFixed(1)}%">P25 ${L.usd(r.boot.p25)}</span><span style="left:${x(r.boot.p75).toFixed(1)}%">P75 ${L.usd(r.boot.p75)}</span></div>`;
+  }
+
   /** The plan's calendar, day 0 to the exit week: numbered steps, weekly ticks and the stop line. */
   function timelineSvg(plan) {
     const end = plan.weeks * 7, sx = (d) => 24 + (d / end) * 660;
@@ -224,12 +232,12 @@
         <section class="card">
           <div class="facts"><div class="big"><span>Implied value, our model's claim</span><b>${L.usd(r.iv.value)}</b></div><div><span>Rank · refit range</span><b>${r.rank} of ${M.rows.length} · ${r.boot.rankLo}–${r.boot.rankHi}</b></div><div><span>P25–P75 band</span><b>${L.usd(r.boot.p25)}–${L.usd(r.boot.p75)}</b></div></div>
           <h2>How the value is built</h2>${equationHtml(r)}
-          <h2>Nearest traded peers <small>same family, closest TVL, within 10× of the curve</small></h2>
+          <h2>Band and nearest traded peers <small>same family, within 10× of the curve</small></h2>${bandHtml(r)}
           <table class="mini"><thead><tr><th>#</th><th>Token that trades</th><th class="num">TVL</th><th class="num">Mcap</th><th class="num">× TVL</th><th class="num">Applied here</th></tr></thead><tbody>${peers}</tbody></table>
           <h2>The farm arithmetic</h2>
           <p class="math">Slice if a token launches = ${A.airdropShare * 100}% airdrop share × ${L.usd(r.iv.value)} × ${L.usd(p.deposit)} / ${L.usd(r.tvl_usd)} TVL = <b>${L.usd(p.slice)}</b><br>
           Break-even = (${L.usd(p.costs)} fees + ${L.usd(p.capitalCost)} income forgone at ${(p.carry * 100).toFixed(1)}% a year for ${p.weeks} weeks) / ${L.usd(p.slice)} = <b>${odds(p.breakEven)}</b>: ${esc(L.oddsText(p, r.iv.value))}</p>
-          <p class="assume">Our estimates: gas ${L.usd(p.gas)} a transaction on ${esc(p.chain)}, ${L.usd(A.bridgeFee)} a bridge leg, T-bills ${A.tbillRate * 100}% less the deposit's assumed yield. Deposit grows with TVL (${L.usd(A.depositMin)}–${L.usd(A.depositMax)}); younger protocols are held longer; the stop is twice the 7-day swing. Worth farming if it pays when 1 hold in ${Math.round(1 / A.farmOdds)} sees a launch, marginal up to 1 in ${Math.round(1 / A.marginalOdds)}.</p>
+          <p class="assume">Our estimates: gas ${L.usd(p.gas)} a transaction on ${esc(p.chain)}, ${L.usd(A.bridgeFee)} a bridge leg, T-bills ${A.tbillRate * 100}% less the deposit's assumed yield. Deposit grows with TVL (${L.usd(A.depositMin)}–${L.usd(A.depositMax)}); younger protocols are held longer; the stop is twice the 7-day swing.</p>
         </section>
         <section class="card plan">
           <h2>Farm plan <small>${esc(p.chain)} · ${L.usd(p.deposit)} · ${p.weeks} weeks</small><i class="verdict v-${p.verdict}">${L.VERDICT_LABEL[p.verdict]}</i></h2>
@@ -272,14 +280,14 @@
         <p class="legend"><i class="dot t"></i> traded token <i class="dot r"></i> ranked protocol at its implied value <i class="dot fit"></i> size curve: log10 value = ${f.a.toFixed(2)} + ${f.b.toFixed(2)} × log10(TVL / $100M)</p>
         <p>A token's market cap grows with TVL at a slope of ${f.b.toFixed(2)}: ten times the TVL is worth ${(10 ** f.b).toFixed(1)} times the value, so small protocols carry a higher multiple than large ones.</p>
         <div class="judge"><h2>Note to the judge</h2><ol>
-          <li>Working radar: at load, <code>deriveAll</code> runs <code>buildRadar</code> on the raw snapshot in this browser; its <code>selectUniverse</code> ranks ${M.watch} of the ${c.watchlist} watchlist protocols plus ${c.ranked - M.watch} more, and every row is checked against board.json (${M.check.ok ? 'all match' : 'see the board'}).</li>
-          <li>Value model: <code>impliedValue</code> uses TVL, the category family, the 7-day change and days since listing, never a name; <code>fitCurve</code> fits it on the snapshot's traded tokens, <code>looCheck</code> tests it, <code>bootstrapRanks</code> gives bands and rank ranges.</li>
-          <li>Farm plans: <code>farmPlan</code> picks the chain, deposit, hold and stop from each row's data, with a cost and a time per step and break-even odds.</li>
+          <li>Working radar: <code>deriveAll</code> runs <code>buildRadar</code> on the raw snapshot in this browser; <code>selectUniverse</code> ranks ${M.watch} of ${c.watchlist} watchlist protocols plus ${c.ranked - M.watch} more; every row is checked against board.json (${M.check.ok ? 'all match' : 'see the board'}).</li>
+          <li>Value model: <code>impliedValue</code> uses TVL, category family, 7-day change and days since listing, never a name; <code>fitCurve</code> fits it on traded tokens, <code>looCheck</code> tests it, <code>bootstrapRanks</code> gives bands and rank ranges.</li>
+          <li>Farm plans: <code>farmPlan</code> sets chain, deposit, hold and stop from each row's data, with cost, time and break-even odds.</li>
           <li>Page: <code>filterRows</code>, <code>sortRows</code>, <code>renderDetail</code>; state lives in the URL hash.</li>
         </ol></div></section>
       <section class="card"><h2>Out of sample: each traded token priced by a fit that never saw it</h2>
         <table class="mini"><thead><tr><th>Model</th><th class="num">Median miss</th><th class="num">Mean |log miss|</th><th class="num">Within 3×</th></tr></thead><tbody>${looRows}</tbody></table>
-        <p>Size curve and family earn their place. Growth and seasoning do not improve the fit (mean miss ${loo[3].meanLogMiss.toFixed(3)} vs ${loo[2].meanLogMiss.toFixed(3)}): this week's traded TVL fell almost everywhere, and a traded token's listing age is not time without a token. So both are bounded priors, not fitted: growth tilts value by half the 7-day change (×${L.MODEL.growthMin}–×${L.MODEL.growthMax}); seasoning discounts a new protocol up to ${L.MODEL.seasonDepth * 100}%, fading over ${L.MODEL.seasonDays} days. A ${loo[3].medianMiss.toFixed(1)}× median miss is why every row shows a band.</p>
+        <p>Size curve and family earn their place. Growth and seasoning do not cut the miss (${loo[3].meanLogMiss.toFixed(3)} vs ${loo[2].meanLogMiss.toFixed(3)}): traded TVL fell almost everywhere this week, and a traded token's age is not time without a token. So both are bounded priors: growth tilts value by half the 7-day change (×${L.MODEL.growthMin}–×${L.MODEL.growthMax}); seasoning discounts a new protocol up to ${L.MODEL.seasonDepth * 100}%, fading over ${L.MODEL.seasonDays} days. A ${loo[3].medianMiss.toFixed(1)}× median miss is why every row shows a band.</p>
         <h2>Category families <small>offset = mean miss shrunk by ${L.MODEL.familyShrinkK} pseudo-tokens</small></h2>
         <table class="mini"><thead><tr><th>Family</th><th class="num">Traded</th><th class="num">Ranked</th><th class="num">Offset</th></tr></thead><tbody>${famRows}</tbody></table>
         <h2>From ${c.protocols} protocols to ${c.ranked} ranks</h2>
