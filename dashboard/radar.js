@@ -96,19 +96,23 @@
     </section>`;
   }
 
-  const NOTE_TAG = { off: 'parent on DefiLlama', named: 'chain-named', shares: 'name shared' };
+  // One log scale for every band on the board, so positions and widths compare at a glance.
+  const lo = Math.log10(Math.min(...M.rows.map((r) => r.boot.p25))), span = Math.log10(Math.max(...M.rows.map((r) => r.boot.p75))) - lo;
+  const at = (v) => Math.min(100, Math.max(0, (100 * (Math.log10(v) - lo)) / span));
+  const bandBar = (r) => `<span class="bb"><i style="left:${at(r.boot.p25).toFixed(1)}%;width:${(at(r.boot.p75) - at(r.boot.p25)).toFixed(1)}%"></i><b style="left:${at(r.iv.value).toFixed(1)}%"></b></span>`;
+  const NOTE_TAG = { off: 'parented', named: 'chain-named', shares: 'name shared' };
   function rowHtml(r) {
     const p = r.plan, tag = r.note && NOTE_TAG[r.note.split(' ')[0]];
     const net = p.net < 0 ? `<td class="num neg"><b>needs ${L.usd(r.iv.value * p.breakEven)}</b><small>launch value to pay</small></td>` : `<td class="num"><b>${L.usd(p.net)}</b><small>on ${L.usd(p.deposit)}, ${p.weeks} wk</small></td>`;
     return `<tr class="ranked" data-slug="${esc(r.slug)}"><td class="rk"><b>${r.rank}</b><small>${r.boot.rankLo}–${r.boot.rankHi}</small></td>
       <td class="name"><a href="#p/${esc(r.slug)}">${esc(r.name)}</a>${r.watch ? '<i class="tag">watchlist</i>' : ''}${tag ? `<i class="tag grey" title="${esc(r.note)}">${tag}</i>` : ''}<small>${esc(r.category || 'no category')} · ${esc(r.chains.slice(0, 2).map(L.chainName).join(', '))}${r.chains.length > 2 ? ` +${r.chains.length - 2}` : ''}</small></td>
-      <td class="val"><b>${L.usd(r.iv.value)}</b><small>P25–P75 ${L.usd(r.boot.p25)}–${L.usd(r.boot.p75)}</small></td>
+      <td class="val"><b>${L.usd(r.iv.value)}</b><small>P25–P75 ${L.usd(r.boot.p25)}–${L.usd(r.boot.p75)}</small></td><td>${bandBar(r)}</td>
       <td class="num">${L.usd(r.tvl_usd)}</td><td class="num ${r.change_7d > 0 ? 'up' : ''}">${pct(r.change_7d)}</td><td class="num">${r.iv.days === null ? 'n/a' : r.iv.days}</td>
       <td class="num">${odds(p.breakEven)}</td>${net}<td><i class="verdict v-${p.verdict}">${L.VERDICT_LABEL[p.verdict]}</i></td></tr>`;
   }
   function anchorHtml(t) {
     return `<tr class="anchor"><td class="rk">–</td><td class="name">${esc(t.name)}<i class="tag grey">trades</i><small>${esc(t.category || 'no category')} · reference, not ranked</small></td>
-      <td class="val"><b>${L.usd(t.mcap_usd)}</b><small>market cap</small></td><td class="num">${L.usd(t.tvl_usd)}</td><td class="num">${pct(t.change_7d)}</td>
+      <td class="val"><b>${L.usd(t.mcap_usd)}</b><small>market cap</small></td><td><span class="bb"><b class="g" style="left:${at(t.mcap_usd).toFixed(1)}%"></b></span></td><td class="num">${L.usd(t.tvl_usd)}</td><td class="num">${pct(t.change_7d)}</td>
       <td class="num" colspan="4">market ${(t.mcap_usd / t.tvl_usd).toFixed(2)}× TVL · our curve would say ${L.usd(L.impliedValue(t, M.fit, S.as_of).value)}</td></tr>`;
   }
 
@@ -177,8 +181,8 @@
     }).join('');
     const th = (key, label, cls) => `<th data-s="${key}" class="${cls || ''} ${st.sort === key ? 'sorted' : ''}">${label}${st.sort === key ? (st.dir === 'asc' ? ' ▲' : ' ▼') : ''}</th>`;
     $('#results').innerHTML = `<div class="status">${active}<span><b>${shown.length}</b> of ${M.rows.length} ranked shown${anchors.length ? `, ${anchors.length} traded anchors` : ''} · sorted by ${SORT_LABEL[st.sort]}</span></div>
-      <table class="board"><thead><tr><th class="rk">#</th>${th('name', 'Protocol')}${th('value', 'Implied value')}${th('tvl', 'TVL', 'num')}${th('growth', '7d TVL', 'num')}${th('days', 'Days, no token', 'num')}${th('odds', 'Break-even odds', 'num')}${th('net', 'Net if launch', 'num')}<th>Farm verdict</th></tr></thead>
-      <tbody>${body.join('') || '<tr><td colspan="9" class="empty">No ranked protocol matches these filters; remove a chip above.</td></tr>'}</tbody></table>`;
+      <table class="board"><thead><tr><th class="rk">#</th>${th('name', 'Protocol')}${th('value', 'Implied value')}<th>P25–P75 band</th>${th('tvl', 'TVL', 'num')}${th('growth', '7d TVL', 'num')}${th('days', 'Days, no token', 'num')}${th('odds', 'Break-even odds', 'num')}${th('net', 'Net if launch', 'num')}<th>Farm verdict</th></tr></thead>
+      <tbody>${body.join('') || '<tr><td colspan="10" class="empty">No ranked protocol matches these filters; remove a chip above.</td></tr>'}</tbody></table>`;
   }
 
   // -- the detail view
