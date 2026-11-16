@@ -102,9 +102,9 @@
   const VERSIONED = /\s(V\d+(\.\d+)?|v\d+(\.\d+)?|\d+\.\d+)$/;
   const WRAP_WORD = /\b(wrapped|staked|staking)\b/i;
   const EXCHANGE_NAME = /^(Binance|Coinbase|Bybit|Kraken|Bitget|OKX|Bitfinex|Gemini)\b/i;
-  // Our two additions: a chain's own trading venue ("XRPL DEX"), and a name shared with a token-bearing protocol.
+  // Our additions: chain venues ("XRPL DEX"), names shared with a token-bearing protocol.
   const CHAIN_VENUE = /^\S+ (DEX|AMM)$/i;
-  // First words that tie no two protocols together; every chain's first word joins them from the data.
+  // Words too common to link two names; chain names join them from the data.
   const GENERIC_WORDS = 'the liquid btc eth usd yield finance protocol network capital labs dao earn vault vaults lending dex bridge pool project stake native super open one prime'.split(' ');
   const firstWord = (s) => s.toLowerCase().split(/[^a-z0-9.]+/).filter(Boolean)[0] || '';
 
@@ -195,7 +195,7 @@
     if (opts.families) {
       const sum = {}, count = {};
       for (const pt of points) {
-        // Each miss is clipped at 10x (1 in log10), so one odd token cannot set its family's offset.
+        // Each miss capped at 10x, so one odd token cannot set its family.
         sum[pt.fam] = (sum[pt.fam] || 0) + clamp(pt.y - a - b * pt.x, -1, 1);
         count[pt.fam] = (count[pt.fam] || 0) + 1;
       }
@@ -231,12 +231,12 @@
     return 1 - (6 * ra.reduce((s, x, i) => s + (x - rb[i]) ** 2, 0)) / (n * (n * n - 1));
   }
 
-  /** Each traded token predicted by a fit that never saw it, for each nested variant of the model. */
+  /** Each traded token priced by a fit that never saw it, per variant. */
   function looCheck(traded, asOf) {
     return VARIANTS.map((v) => {
       const pts = fitPoints(traded, asOf, v.priors);
       const miss = pts.map((pt, i) => Math.abs(pt.y - predictLog(fitCurve(pts.filter((_, j) => j !== i), v), pt.x, pt.fam)));
-      // The ranking itself, out of sample: Spearman's rho inside each of 8 fixed held-out folds, averaged.
+      // The ranking out of sample: Spearman's rho in 8 fixed folds, averaged.
       let rankCorr = 0;
       for (let f = 0; f < 8; f++) {
         const fit = fitCurve(pts.filter((_, j) => j % 8 !== f), v), held = pts.filter((_, j) => j % 8 === f);

@@ -99,12 +99,13 @@
   const lo = Math.log10(Math.min(...M.rows.map((r) => r.boot.p25))), span = Math.log10(Math.max(...M.rows.map((r) => r.boot.p75))) - lo;
   const at = (v) => Math.min(100, Math.max(0, (100 * (Math.log10(v) - lo)) / span));
   const bandBar = (r) => `<span class="bb"><i style="left:${at(r.boot.p25).toFixed(1)}%;width:${(at(r.boot.p75) - at(r.boot.p25)).toFixed(1)}%"></i><b style="left:${at(r.iv.value).toFixed(1)}%"></b></span>`;
+  let on = ''; // the chain filter, listed first in each row
   const NOTE_TAG = { above: 'off list ≥ floor', named: 'chain-named', shares: 'name shared' };
   function rowHtml(r) {
     const p = r.plan, tag = r.note && NOTE_TAG[r.note.split(' ')[0]];
     const net = p.net < 0 ? `<td class="num neg"><b>needs ${L.usd(r.iv.value * p.breakEven)}</b><small>launch value to pay</small></td>` : `<td class="num"><b>${L.usd(p.net)}</b><small>${L.usd(p.perHour)}/h · ${p.weeks} wk</small></td>`;
     return `<tr class="ranked" data-slug="${esc(r.slug)}"><td class="rk"><b>${r.rank}</b><small>${r.boot.rankLo}–${r.boot.rankHi}</small></td>
-      <td class="name"><a href="#p/${esc(r.slug)}">${esc(r.name)}</a>${r.watch ? '<i class="tag">watchlist</i>' : ''}${tag ? `<i class="tag grey" title="${esc(r.note)}">${tag}</i>` : ''}<small>${esc(r.category || 'no category')} · ${esc(r.chains.slice(0, 2).map(L.chainName).join(', '))}${r.chains.length > 2 ? ` +${r.chains.length - 2}` : ''}</small></td>
+      <td class="name"><a href="#p/${esc(r.slug)}">${esc(r.name)}</a>${r.watch ? '<i class="tag">watchlist</i>' : ''}${tag ? `<i class="tag grey" title="${esc(r.note)}">${tag}</i>` : ''}<small>${esc(r.category || 'no category')} · ${[on, ...r.chains.filter((c) => c !== on)].filter(Boolean).slice(0, 2).map((c) => (c === on ? `<b>${esc(L.chainName(c))}</b>` : esc(L.chainName(c)))).join(', ')}${r.chains.length > 2 ? ` +${r.chains.length - 2}` : ''}</small></td>
       <td class="val"><b>${L.usd(r.iv.value)}</b><small>P25–P75 ${L.usd(r.boot.p25)}–${L.usd(r.boot.p75)}</small></td><td>${bandBar(r)}</td>
       <td class="num">${L.usd(r.tvl_usd)}</td><td class="num ${r.change_7d > 0 ? 'up' : ''}">${pct(r.change_7d)}</td><td class="num" title="${r.iv.days === null ? 'no listing date: 365 assumed' : ''}">${r.iv.days === null ? '365*' : r.iv.days}</td>
       <td class="num">${odds(p.breakEven)}</td>${net}<td><i class="verdict v-${p.verdict}">${L.VERDICT_LABEL[p.verdict]}</i></td></tr>`;
@@ -165,6 +166,7 @@
 
   function renderResults(st) {
     if (st.tab === 'traded') { $('#results').innerHTML = tradedHtml(st); return; }
+    on = st.chain;
     const shown = sortRows(filterRows(M.rows, st), st);
     const anchors = anchorsFor(shown, st);
     const body = [];
