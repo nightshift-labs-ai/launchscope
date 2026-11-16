@@ -20,7 +20,10 @@ const argOf = (name, fallback) => {
 const page = resolve(argOf('page', join(repo, 'out', 'dashboard', 'index.html')));
 const only = argOf('only', null);
 const BUDGET = Number(argOf('budget', 270000));
-const VIEWPORT = { width: 1440, height: 1000 };
+// --scale 1.2 lays the page out at 1200x833 CSS px drawn at 1.2x (file still 1440x1000, glyphs 20% larger);
+// tried 2026-11-16: the board and method tables overflow at that width, so the default stays 1.
+const SCALE = Number(argOf('scale', 1));
+const VIEWPORT = { width: Math.round(1440 / SCALE), height: Math.round(1000 / SCALE) };
 const pwDir = process.env.PLAYWRIGHT_DIR ?? '/home/agent/tools/pw/node_modules/';
 const { chromium } = createRequire(pwDir)('playwright');
 
@@ -38,7 +41,7 @@ if (!existsSync(page)) {
 }
 const outDir = join(repo, 'screenshots');
 const browser = await chromium.launch();
-const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 });
+const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: SCALE });
 const tab = await ctx.newPage();
 const errors = [];
 tab.on('pageerror', (e) => errors.push(String(e)));
