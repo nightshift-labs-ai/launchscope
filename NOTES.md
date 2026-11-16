@@ -109,15 +109,17 @@ git add -A                                            # shoot.mjs may swap .png 
   B11 plan wording (native coin "do not buy it", resting quotes + country-terms step, CDP < $1, CDP
   Manager -> vault action, hedged exit waits) 24f3800; C13 default board without anchors 60739ce;
   C13b judge note states rank moves dd70906; C15 scatter y-axis to $10K 0ff59d4; C14 filtered chain
-  first in bold 108f4bf. C12 (readability at 1024 px): see Status.
+  first in bold 108f4bf; C12 readability 4cc3d92: secondary text 14 px, tags 13 px (nowrap), band bar
+  90 px, header letter-spacing 0.01em so the board table fits 1408 px exactly in every variant. The 1.2x
+  shoot (tools/shoot.mjs --scale 1.2) was tried and rejected: board and method tables overflow at 1200 px.
 
 ## Status
 - M1 b1bcfe7, M2 2a5f60e, M3 06c14b7, operator items 1-6 and review items above. Gate 8/8 +
   determinism after each commit; verdicts now 57 farm / 80 marginal / 44 skip.
-- Open: review C12, readability at the judge's 1024 px (secondary text 13 px renders ~9 px). Two routes:
-  (a) shoot.mjs at a 1200x833 viewport with deviceScaleFactor 1.2 (file stays 1440x1000, zero dashboard
-  bytes; check the board table and the .detail/.method grids still fit, maybe fr units), or (b) a 14 px
-  minimum in style.css (byte-neutral edits, fewer rows above the fold). Look at all 4 shots after.
+- All operator items 1-6 and review items A1-C15 done. Source text 65,455 of 65,536 (uncut, ~80 bytes
+  free); dossier 1.41 MB; clean `git archive HEAD` build is byte-identical to the working tree.
+- Layout guard: after any board change, check the table's right edge stays <= 1408 px in #board,
+  #board?anchors=1 and the filtered view (Playwright: table.board getBoundingClientRect().right).
 - Possible next steps (free bytes first): sibling grouping for products of one pre-token protocol (Felix
   Vaults/Felix CDP, Figure Markets Prime/Exchange, Avant avUSD/avETH); prev/next links in the detail view;
   method legend wraps mid-formula; the board's "sorted by Implied value" capital.
