@@ -26,9 +26,10 @@ const { chromium } = createRequire(pwDir)('playwright');
 
 // Each view the judge sees: its file name and the URL hash that sets the page's state.
 const SHOTS = [
-  { name: '1-board', hash: '' },
-  { name: '2-detail', hash: '#p/steakhouse-financial' },
-  { name: '3-filtered', hash: '#p/project-x' },
+  { name: '1-board', hash: '#board' },
+  { name: '2-detail', hash: '#p/opentrade' },
+  { name: '3-filtered', hash: '#board?fam=trade&verdict=farm&sort=perhour' },
+  { name: '4-method', hash: '#method' },
 ];
 
 if (!existsSync(page)) {

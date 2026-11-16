@@ -53,8 +53,25 @@ node tools/gate.mjs --snapshot $SNAP                  # 7 gate rows + determinis
 - Screenshot budget: gate caps dossier at 1.5 MiB and images are base64 (x4/3), so 4 images must total
   <= ~1.1 MB raw => <= 270 KB each (brief's 300-350 KB each would overflow with 4).
 
+## Page (M2)
+- Routes: `#board?fam=&chain=&verdict=&watch=&q=&anchors=1&sort=value&dir=desc` (defaults omitted),
+  `#p/<slug>`, `#method`. Filter changes use history.replaceState (no re-render of the toolbar on typing).
+- `deriveAll` (radar.js) refits + recomputes values, 200-run bootstrap, plans; KPI strip shows
+  "board.json = this page" with counts (173/173 each). Fails visibly (red) if anything differs.
+- Anchors: traded tokens within [min shown value /1.5, max *1.5], same filters, only in value order,
+  thinned to one per ~6 ranked rows (22 on the full board).
+- Detail: value + rank range + band; equation tiles (size curve x family x growth x seasoning = value);
+  band strip with numbered peer diamonds; peers table; "farm arithmetic" (slice and break-even formulas
+  with the row's numbers); plan card: timeline SVG, 9 costed/timed steps, totals, honesty box.
+- Method: scatter (traded grey, ranked accent, fit line), LOO table (live looCheck), family offsets,
+  universe accounting, note to the judge (function names).
+- Screenshots: 1-board (#board), 2-detail (#p/opentrade, watchlist rank 10, RWA, marginal 46%),
+  3-filtered (#board?fam=trade&verdict=farm&sort=perhour: 20 rows), 4-method. PNG 230-260 KB each.
+- Budgets now: dashboard source ~62.9 KB, dossier text ~63.2 KB of 65,536 (uncut), dossier 1.45 MB of
+  1.57 MB. Any addition must be paid for by a trim.
+
 ## Status
-- M1 done: valid entry, gate 8/8 (7 rows + determinism), minimal page (table + plain detail), 3 shots.
-- Next (M2): full page: anchored board (traded anchors interleaved by mcap, toggle), filters/sort/search,
-  detail with waterfall + band + rank range + peers + timeline + honesty box, method view (scatter SVG,
-  LOO table, note to the judge), 4 screenshots (board, detail, filtered, method), README.
+- M1 done (b1bcfe7): valid entry, gate 8/8, minimal page.
+- M2 done: full page, 4 screenshots, README. Background review workflow (gate/model/plan) running;
+  confirmed findings go into M3.
+- Next (M3): judge-eye critique of the 4 screenshots, 5 weakest points listed here, fixed.

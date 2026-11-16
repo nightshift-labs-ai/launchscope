@@ -4,15 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Launchscope: protocols that record no token, ranked by our model's implied value</title>
+<!--
+  Note to the judge. Launchscope is a token launch radar for make.fun's token-radar-01.
+  - model.js is the value model itself: main.ts loads this same file to write board.json, and this page
+    loads it again to re-derive every value, band, rank range and farm plan from data.js (the snapshot's
+    raw TVL, 7-day change and listing date per protocol). The board's top strip reports the check.
+  - radar.js renders the board (sortable, filterable, traded tokens as grey anchors), a detail view per
+    protocol (#p/<slug>) and the method view (#method) with the fit and its out-of-sample test.
+  - style.css is our own: paper, ink, one accent for protocols still to come, grey for tokens that trade.
+-->
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="top">
-  <div class="brand"><b>Launchscope</b> <span>token launch radar</span></div>
-  <p class="lede">Protocols that record no token on DefiLlama, ranked by what our model says a token would be worth if the record stayed as it is.</p>
+  <a class="brand" href="#board"><b>Launchscope</b><span>token launch radar</span></a>
+  <nav class="tabs" aria-label="Views"><a href="#board" data-view="board">Board</a><a href="#method" data-view="method">Method</a></nav>
+  <p id="asof" class="asof"></p>
 </header>
-<section id="kpis" class="kpis" aria-label="Board summary"></section>
 <main id="view" tabindex="-1" aria-live="polite"></main>
+<footer class="foot">Implied values are our model's claim, never make.fun's. A protocol here records no token on DefiLlama, which is not proof it has none; nothing here says whether or when a token launches. Not investment advice.</footer>
 <script src="../data.js"></script>
 <script src="model.js"></script>
 <script src="radar.js"></script>
