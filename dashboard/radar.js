@@ -244,7 +244,7 @@
           ${timelineSvg(p)}
           <table class="steps"><thead><tr><th>#</th><th>When</th><th>Step</th><th class="num">Cost</th><th class="num">Time</th></tr></thead><tbody>${steps}</tbody></table>
           <div class="totals"><div><span>Fees and gas</span><b>${L.usd(p.costs)}</b></div><div><span>Income forgone</span><b>${L.usd(p.capitalCost)}</b></div><div><span>Your time</span><b>${Math.round(p.minutes)} min</b></div><div><span>Slice if launch</span><b>${L.usd(p.slice)}</b></div><div><span>Break-even odds</span><b>${odds(p.breakEven)}</b></div><div><span>Net per hour</span><b>${L.usd(p.perHour)}</b></div></div>
-          <ul class="honesty">${L.HONESTY.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>
+          <p class="honesty">Estimates, one wallet, your own funds; not investment advice.</p>
         </section>
       </div>`;
   }

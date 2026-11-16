@@ -42,12 +42,6 @@
     for (const c of chains.split('|')) ASSUME.gas[c] = usdPerTx;
   }
 
-  const HONESTY = [
-    'One wallet, your own funds. Never split a position across wallets.',
-    'A token launch is not promised: DefiLlama records no token here, which is not proof there is none.',
-    "Claim only through the protocol's official domain, never through a link someone sends you.",
-    "Cost arithmetic and our model's claim, not investment advice.",
-  ];
 
   // -- helpers
 
@@ -413,7 +407,7 @@
   }
 
   const api = {
-    MODEL, ASSUME, HONESTY, FAMILY_LABEL, VERDICT_LABEL, VARIANTS,
+    MODEL, ASSUME, FAMILY_LABEL, VERDICT_LABEL, VARIANTS,
     usd, quantile, mulberry32, daysSince, familyOf, tokenStatus, nameStem, selectUniverse,
     growthTilt, seasonTilt, fitPoints, fitCurve, predictLog, impliedValue, looCheck, bootstrapRanks,
     nearestPeers, cheapestChain, gasOn, chainName, farmPlan, oddsText, buildRadar,
