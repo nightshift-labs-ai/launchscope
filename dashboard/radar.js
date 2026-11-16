@@ -67,9 +67,11 @@
     return rows.slice().sort((a, b) => { const x = key(a), y = key(b); return (x < y ? -1 : x > y ? 1 : 0) * sign || a.rank - b.rank; });
   }
 
+  // Anchors sit in value order only, and not under a verdict, watchlist or search filter.
+  const anchorsOff = (st) => st.sort !== 'value' || !!(st.verdict || st.watch || st.q);
   /** Traded tokens as unranked anchors at market cap, about one per six rows. */
   function anchorsFor(shown, st) {
-    if (st.anchors !== '1' || st.sort !== 'value' || shown.length === 0 || st.verdict || st.watch || st.q) return [];
+    if (st.anchors !== '1' || anchorsOff(st) || shown.length === 0) return [];
     const top = shown[0].iv.value * 1.5, bottom = shown[shown.length - 1].iv.value / 1.5;
     const pool = M.traded.filter((t) => t.mcap_usd <= top && t.mcap_usd >= bottom && (!st.fam || L.familyOf(t.category) === st.fam) && (!st.chain || t.chains.includes(st.chain)))
       .sort((a, b) => b.mcap_usd - a.mcap_usd || (a.slug < b.slug ? -1 : 1));
@@ -167,6 +169,7 @@
   function renderResults(st) {
     if (st.tab === 'traded') { $('#results').innerHTML = tradedHtml(st); return; }
     on = st.chain;
+    $('.toggle').classList.toggle('off', anchorsOff(st));
     const shown = sortRows(filterRows(M.rows, st), st);
     const anchors = anchorsFor(shown, st);
     const body = [];

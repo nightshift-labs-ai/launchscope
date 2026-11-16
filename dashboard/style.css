@@ -54,6 +54,7 @@ td { padding: 4px 8px; border-bottom: 1px solid var(--rule); }
 .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .chip.on small { color: #fbe9dc; }
 .toggle { font-size: 14px; }
+.toggle.off { opacity: 0.45; }
 .status { padding: 8px 0; }
 
 /* the board */
