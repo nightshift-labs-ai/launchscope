@@ -252,12 +252,12 @@
   // -- the method view
 
   function scatterSvg() {
-    const x = (v) => 70 + ((Math.log10(v) - 6.5) / 4.5) * 540, y = (v) => 370 - ((Math.log10(v) - 5) / 6) * 350;
+    const x = (v) => 70 + ((Math.log10(v) - 6.5) / 4.5) * 540, y = (v) => 370 - ((Math.log10(v) - 4) / 7) * 350;
     let grid = '';
-    const tick = (e) => ['$100K', '$1M', '$10M', '$100M', '$1B', '$10B', '$100B'][e - 5];
+    const tick = (e) => ['$10K', '$100K', '$1M', '$10M', '$100M', '$1B', '$10B', '$100B'][e - 4];
     for (let e = 7; e <= 10; e++) grid += `<line class="g" x1="${x(10 ** e)}" x2="${x(10 ** e)}" y1="20" y2="370"/><text x="${x(10 ** e)}" y="388" text-anchor="middle">${tick(e)}</text>`;
-    for (let e = 5; e <= 11; e++) grid += `<line class="g" x1="70" x2="610" y1="${y(10 ** e)}" y2="${y(10 ** e)}"/><text x="62" y="${y(10 ** e) + 4}" text-anchor="end">${tick(e)}</text>`;
-    const traded = M.traded.map((t) => `<circle class="t" cx="${x(t.tvl_usd).toFixed(1)}" cy="${y(Math.max(t.mcap_usd, 1e5)).toFixed(1)}" r="3.5"/>`).join('');
+    for (let e = 4; e <= 11; e++) grid += `<line class="g" x1="70" x2="610" y1="${y(10 ** e)}" y2="${y(10 ** e)}"/><text x="62" y="${y(10 ** e) + 4}" text-anchor="end">${tick(e)}</text>`;
+    const traded = M.traded.map((t) => `<circle class="t" cx="${x(t.tvl_usd).toFixed(1)}" cy="${y(t.mcap_usd).toFixed(1)}" r="3.5"/>`).join('');
     const ranked = M.rows.map((r) => `<rect class="r" x="${(x(r.tvl_usd) - 2.5).toFixed(1)}" y="${(y(r.iv.value) - 2.5).toFixed(1)}" width="5" height="5"/>`).join('');
     const line = (tvl) => 10 ** (M.fit.a + M.fit.b * (Math.log10(tvl) - L.MODEL.centerLogTvl));
     return `<svg class="scatter" viewBox="0 0 620 404" role="img" aria-label="Fit of market cap on TVL">${grid}${traded}${ranked}
