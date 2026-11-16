@@ -12,7 +12,7 @@
 
   // -- re-derive and verify
 
-  /** Run the whole model on the snapshot here, then check each row against board.json by slug. */
+  /** Re-run the model here; check each row against board.json. */
   function deriveAll() {
     const R = L.buildRadar(S), want = new Map(D.board.map((b) => [b[0], b]));
     const check = { n: R.rows.length, ranked: 0, values: 0, bands: 0, ranks: 0, plans: 0, fit: Math.abs(R.fit.a - D.fit.a) < 1e-9 && Math.abs(R.fit.b - D.fit.b) < 1e-9 };
@@ -95,7 +95,7 @@
     </section>`;
   }
 
-  // One log scale for every band on the board, so positions and widths compare at a glance.
+  // One log scale for all bands, so they compare at a glance.
   const lo = Math.log10(Math.min(...M.rows.map((r) => r.boot.p25))), span = Math.log10(Math.max(...M.rows.map((r) => r.boot.p75))) - lo;
   const at = (v) => Math.min(100, Math.max(0, (100 * (Math.log10(v) - lo)) / span));
   const bandBar = (r) => `<span class="bb"><i style="left:${at(r.boot.p25).toFixed(1)}%;width:${(at(r.boot.p75) - at(r.boot.p25)).toFixed(1)}%"></i><b style="left:${at(r.iv.value).toFixed(1)}%"></b></span>`;
@@ -198,7 +198,7 @@
       `<div class="tile res"><b>${L.usd(iv.value)}</b><span>implied value</span></div></div>`;
   }
 
-  /** The band on a log axis, the value (dot) and, numbered, what each traded peer's multiple would make it. */
+  /** Band on a log axis; numbered peers at their multiples. */
   function bandHtml(r) {
     const v = [r.boot.p25, r.boot.p75, r.iv.value, ...r.peers.map((t) => t.implied)].map(Math.log10);
     const a = Math.min(...v) - 0.2, x = (u) => (100 * (Math.log10(u) - a)) / (Math.max(...v) + 0.2 - a);

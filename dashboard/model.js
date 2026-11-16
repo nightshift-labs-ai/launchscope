@@ -65,7 +65,6 @@
     };
   }
 
-  /** "$1.2M"-style dollars for tables; cents below $10 so gas reads. */
   function usd(n) {
     const a = Math.abs(n), sign = n < 0 ? '-' : '';
     if (a >= 1e9) return `${sign}$${(a / 1e9).toFixed(a >= 1e10 ? 1 : 2)}B`;
@@ -75,7 +74,6 @@
     return `${sign}$${a.toFixed(2)}`;
   }
 
-  /** Whole days from listed_at to as_of; null when DefiLlama gives no date. */
   function daysSince(listedAt, asOf) {
     if (!listedAt) return null;
     return Math.max(0, Math.round((Date.parse(`${asOf}T00:00:00Z`) - Date.parse(`${listedAt}T00:00:00Z`)) / 86400000));
@@ -132,7 +130,6 @@
     return null;
   }
 
-  /** Split the snapshot: ranked, traded (the fit), set aside, recorded. */
   function selectUniverse(snap) {
     const watch = new Set(snap.watchlist);
     const generic = new Set(GENERIC_WORDS);
@@ -224,7 +221,7 @@
     ['family', '+ category family', 1, 1, 0], ['full', '+ growth & seasoning priors', 1, 1, 1]]
     .map(([key, label, slope, families, priors]) => ({ key, label, slope: !!slope, families: !!families, priors: !!priors }));
 
-  /** Spearman's rho from ranks (the values are continuous, so ties do not arise). */
+  /** Spearman's rho (continuous values: no ties). */
   function spearman(a, b) {
     const ranks = (v) => { const r = []; v.map((x, i) => i).sort((i, j) => v[i] - v[j]).forEach((i, k) => (r[i] = k)); return r; };
     const ra = ranks(a), rb = ranks(b), n = a.length;
@@ -252,7 +249,7 @@
     });
   }
 
-  /** 200 seeded refits on resampled traded tokens: P25-P75 of value x one resampled miss (the band), P10-P90 of rank (refits only). */
+  /** 200 seeded refits: band = P25-P75 of value x a resampled miss; rank range = P10-P90 over refits. */
   function bootstrapRanks(traded, rows, asOf, runs, seed) {
     const pts = fitPoints(traded, asOf, true);
     const full = fitCurve(pts, FULL);
@@ -272,7 +269,7 @@
     }));
   }
 
-  /** Comparables: same-family traded tokens closest in TVL, among those within 10x of the curve (wilder is often a parent's cap). */
+  /** Same-family traded peers nearest in TVL, within 10x of the curve (wilder is often a parent's cap). */
   function nearestPeers(p, traded, k, fit, asOf) {
     const fam = familyOf(p.category), x = log10(p.tvl_usd);
     const typical = traded.filter((t) => Math.abs(log10(t.mcap_usd / impliedValue(t, fit, asOf).value)) <= 1);
@@ -311,7 +308,6 @@
   }
   const STABLES = 'Dual-Token Stablecoin|Stablecoin Wrapper|Algo-Stables|Stablecoin Issuer|Reserve Currency'.split('|');
 
-  /** The deposit action by category: text, minutes, exit wait, extra cost. */
   function depositAction(p, deposit, chain, asset, exitDay) {
     const c = p.category || '', fam = familyOf(c), d = `${usd(deposit)} of ${asset}`, n = p.name, on = `on ${chainName(chain)}`, swap = deposit * 0.0005;
     const act = (text, minutes, wait, extra = 0, flag = {}) => Object.assign({ text, minutes, wait, extra }, flag);
@@ -384,14 +380,12 @@
 
   const VERDICT_LABEL = { farm: 'Worth farming', marginal: 'Marginal', skip: 'Skip' };
 
-  /** What the break-even odds mean for this plan. */
   function oddsText(plan, value) {
     return plan.breakEven > 1 ? `no launch chance covers it (it would need a launch worth ${usd(value * plan.breakEven)})` : `the chance a token launches, with a snapshot, inside the ${plan.weeks}-week hold`;
   }
 
   // -- the whole board
 
-  /** The whole board from the snapshot alone. */
   function buildRadar(snap) {
     const u = selectUniverse(snap);
     const fit = fitCurve(fitPoints(u.traded, snap.as_of, true), FULL);
