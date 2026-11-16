@@ -123,7 +123,7 @@ td { padding: 4px 8px; border-bottom: 1px solid var(--rule); }
 .steps .num, .steps .when { white-space: nowrap; }
 .totals { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 8px 0; padding-top: 8px; border-top: 2px solid var(--plan); }
 .assume { margin: 16px 0 0; }
-.honesty { margin: 8px 0 0; color: var(--plan); font-weight: 600; }
+.honesty { margin: 8px 0 0; padding: 8px 16px 8px 32px; background: var(--plan-soft); border-radius: 6px; }
 
 /* method */
 .method { grid-template-columns: 640px 1fr; }

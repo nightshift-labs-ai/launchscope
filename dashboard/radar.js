@@ -242,14 +242,14 @@
           <h2>The farm arithmetic</h2>
           <p class="math">Slice if a token launches = ${A.airdropShare * 100}% airdrop share × ${L.usd(r.iv.value)} × ${L.usd(p.deposit)} / ${L.usd(r.tvl_usd)} TVL = <b>${L.usd(p.slice)}</b><br>
           Break-even = (${L.usd(p.costs)} fees + ${L.usd(p.capitalCost)} income forgone at ${(p.carry * 100).toFixed(1)}% a year for ${p.weeks} weeks) / ${L.usd(p.slice)} = <b>${odds(p.breakEven)}</b>: ${esc(L.oddsText(p, r.iv.value))}</p>
-          <p class="assume">Estimates: gas ${L.usd(p.gas)} a transaction, ${L.usd(A.bridgeFee)} a bridge leg, T-bills ${A.tbillRate * 100}% less the deposit's yield. Deposit grows with TVL; younger protocols are held longer; stop = twice the 7-day swing.</p>
+          <p class="assume">Estimates: gas ${L.usd(p.gas)} a transaction on ${esc(p.chain)}, ${L.usd(A.bridgeFee)} a bridge leg, T-bills ${A.tbillRate * 100}% less the deposit's yield. Deposit grows with TVL within ${L.usd(A.depositMin)}–${L.usd(A.depositMax)}; younger protocols are held longer; stop = twice the 7-day swing.</p>
         </section>
         <section class="card plan">
           <h2>Farm plan <small>${esc(p.chain)} · ${L.usd(p.deposit)} · ${p.weeks} weeks</small><i class="verdict v-${p.verdict}">${L.VERDICT_LABEL[p.verdict]}</i></h2>${p.capped ? `<p class="note">Capped at Marginal: TVL ${pct(r.change_7d)} in 7 days, past the ${A.capDrop}% limit; the odds alone say worth farming.</p>` : ''}
           ${timelineSvg(p)}
           <table class="steps"><thead><tr><th>#</th><th>When</th><th>Step</th><th class="num">Cost</th><th class="num">Time</th></tr></thead><tbody>${steps}</tbody></table>
           <div class="totals"><div><span>Fees and gas</span><b>${L.usd(p.costs)}</b></div><div><span>Income forgone</span><b>${L.usd(p.capitalCost)}</b></div><div><span>Your time</span><b>${Math.round(p.minutes)} min</b></div><div><span>Slice if launch</span><b>${L.usd(p.slice)}</b></div><div><span>Break-even odds</span><b>${odds(p.breakEven)}</b></div><div><span>Net per hour</span><b>${L.usd(p.perHour)}</b></div></div>
-          <p class="honesty">Estimates, one wallet, your own funds; not investment advice.</p>
+          <ul class="honesty">${D.honesty.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>
         </section>
       </div>`;
   }

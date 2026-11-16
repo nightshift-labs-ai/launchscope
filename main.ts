@@ -115,6 +115,13 @@ function summaryText(plan: any, value: number): string {
 /** The ground rules every plan carries, as its own farm_steps string. */
 const GROUND_RULES = `Ground rules: one wallet, your own funds, never split across wallets; every cost and time here is our round estimate; ` +
   `the slice assumes ${L.ASSUME.airdropShare * 100}% of a launched token goes to depositors pro rata, and a launch may pay depositors nothing.`;
+/** The safety list every detail view shows under its plan (written into data.js for the page). */
+const HONESTY = [
+  'One wallet only, your own funds. Never split a position across wallets.',
+  'A token launch is not promised: DefiLlama records no token here, which is not proof there is none.',
+  "Claim only through the protocol's official domain, never through a link someone sends you.",
+  "Not financial advice: cost arithmetic and our model's claim.",
+];
 
 const board = radar.rows.map((row: any) => ({
   rank: row.rank,
@@ -165,6 +172,7 @@ if (issue !== null) fail(`the model wrote a board the gate refuses: ${issue}`);
 const data = {
   model_version: L.MODEL.version,
   exchanges: EXCHANGES,
+  honesty: HONESTY,
   snapshot: snap,
   fit: { a: radar.fit.a, b: radar.fit.b },
   board: board.map((r: any) => [r.slug, r.rank, r.implied_value_usd, r.band_p25_usd, r.band_p75_usd, r.rank_range[0], r.rank_range[1], r.farm.verdict, Math.round(radar.rows[r.rank - 1].plan.net)]),
