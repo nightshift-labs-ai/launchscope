@@ -10,8 +10,6 @@
   const times = (m) => `×${m.toFixed(2)}`;
   const odds = (p) => (p > 1 ? '>100%' : `${Math.round(p * 100)}%`);
 
-  // -- re-derive and verify
-
   /** Re-run the model here; check each row against board.json. */
   function deriveAll() {
     const R = L.buildRadar(S), want = new Map(D.board.map((b) => [b[0], b]));
@@ -30,8 +28,6 @@
     return { R, fit: R.fit, rows, traded: R.universe.traded, check, watch: rows.filter((r) => r.watch).length };
   }
   const M = deriveAll();
-
-  // -- state in the URL hash
 
   const DEFAULTS = { tab: '', fam: '', chain: '', verdict: '', watch: '', q: '', anchors: '1', sort: 'value', dir: 'desc' };
   const SORTS = {
@@ -297,8 +293,6 @@
         <p>${traded} trade (fit and anchors) · ${u.recorded} record a token with no market cap (not ranked) · ${ranked + aside} record no token: ${ranked} ranked, ${aside} set aside as ${Object.keys(why).map((k) => `${esc(k)} (${why[k]})`).join(', ')}.</p>
         <h2>Farm verdicts</h2><p>Worth farming at break-even odds of ${A.farmOdds * 100}% or less (it pays if 1 hold in ${1 / A.farmOdds} sees a launch), marginal to ${A.marginalOdds * 100}%, else skip. A 7-day TVL fall past ${A.capDrop}% caps it at marginal (${M.rows.filter((r) => r.plan.capped).length} row here).</p></section></div>`;
   }
-
-  // -- routing
 
   function route() {
     const r = readHash();

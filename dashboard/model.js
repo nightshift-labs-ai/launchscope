@@ -43,8 +43,6 @@
   }
 
 
-  // -- helpers
-
   const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const log10 = Math.log10;
@@ -74,6 +72,7 @@
     return `${sign}$${a.toFixed(2)}`;
   }
 
+  /** Days DefiLlama has tracked it (listed_at to as_of): our "time with no token". */
   function daysSince(listedAt, asOf) {
     if (!listedAt) return null;
     return Math.max(0, Math.round((Date.parse(`${asOf}T00:00:00Z`) - Date.parse(`${listedAt}T00:00:00Z`)) / 86400000));
@@ -130,6 +129,7 @@
     return null;
   }
 
+  /** Splits the snapshot: ranked (no token), traded (the fit), set aside (with a reason). */
   function selectUniverse(snap) {
     const watch = new Set(snap.watchlist);
     const generic = new Set(GENERIC_WORDS);
@@ -154,8 +154,6 @@
     }
     return { ranked, traded, setAside, recorded };
   }
-
-  // -- the value model
 
   function growthTilt(change7d) {
     const g = change7d === null ? 0 : change7d / 100;
@@ -281,8 +279,6 @@
       .map(({ t }) => ({ slug: t.slug, name: t.name, tvl_usd: t.tvl_usd, mcap_usd: t.mcap_usd, multiple: t.mcap_usd / t.tvl_usd, implied: Math.round(p.tvl_usd * (t.mcap_usd / t.tvl_usd)) }));
   }
 
-  // -- the farm plan
-
   function gasOn(chain) {
     return Object.prototype.hasOwnProperty.call(ASSUME.gas, chain) ? ASSUME.gas[chain] : ASSUME.gasDefault;
   }
@@ -308,6 +304,7 @@
   }
   const STABLES = 'Dual-Token Stablecoin|Stablecoin Wrapper|Algo-Stables|Stablecoin Issuer|Reserve Currency'.split('|');
 
+  /** The deposit a category takes: what to do, minutes, extra cost, the wait to exit. */
   function depositAction(p, deposit, chain, asset, exitDay) {
     const c = p.category || '', fam = familyOf(c), d = `${usd(deposit)} of ${asset}`, n = p.name, on = `on ${chainName(chain)}`, swap = deposit * 0.0005;
     const act = (text, minutes, wait, extra = 0, flag = {}) => Object.assign({ text, minutes, wait, extra }, flag);
@@ -380,12 +377,12 @@
 
   const VERDICT_LABEL = { farm: 'Worth farming', marginal: 'Marginal', skip: 'Skip' };
 
+  /** What the break-even odds mean: the launch chance, in the hold, that pays the plan. */
   function oddsText(plan, value) {
     return plan.breakEven > 1 ? `no launch chance covers it (it would need a launch worth ${usd(value * plan.breakEven)})` : `the chance a token launches, with a snapshot, inside the ${plan.weeks}-week hold`;
   }
 
-  // -- the whole board
-
+  /** Snapshot to board: universe, fit, values, bands, plans. main.ts and the page both run it. */
   function buildRadar(snap) {
     const u = selectUniverse(snap);
     const fit = fitCurve(fitPoints(u.traded, snap.as_of, true), FULL);
