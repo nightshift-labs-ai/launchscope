@@ -2,6 +2,7 @@
 
 Entry for make.fun token-radar-01. Brief: /home/agent/makefun/briefs/radar1_brief_1.md. Kit rules:
 /home/agent/makefun-kit/tokenradar01/x_s228/token-radar-01-kit/RULES.txt. Never push, never submit.
+Write entry files only with Write/Edit (the transcript gate credits only those lines; no sed -i on entry files).
 
 ## Commands
 ```sh
@@ -9,69 +10,80 @@ export PATH=/home/agent/tools/node22/bin:$PATH
 export LD_LIBRARY_PATH=/home/agent/tools/libroot/usr/lib/x86_64-linux-gnu
 SNAP=/home/agent/makefun-kit/tokenradar01/x_s228/token-radar-01-kit/input/snapshot.json
 MAKEFUN_OUTPUT_DIR=out node main.ts --input $SNAP     # build out/
-node tools/shoot.mjs                                  # screenshots/ from out/dashboard
+node tools/shoot.mjs [--only 2-detail]                # screenshots/ from out/dashboard (PNG, JPEG if >270 KB)
 MAKEFUN_OUTPUT_DIR=out node main.ts --input $SNAP     # rebuild so the dossier carries the images
-node tools/gate.mjs --snapshot $SNAP                  # 7 gate rows + determinism (run before each commit)
+node tools/gate.mjs --snapshot $SNAP                  # 7 gate rows + determinism; warns on unstaged files
+git add -A                                            # shoot.mjs may swap .png <-> .jpg
 ```
 
 ## Layout
-- `main.ts`: reads the snapshot, loads `dashboard/model.js` via createRequire, writes board.json, data.js
-  (at /output/data.js, outside dashboard/ so data never eats the judge's 64 KB source budget), copies
-  dashboard/ + screenshots/, writes dossier.json with vendor/makefun-board.ts (unchanged copy).
-- `dashboard/model.js`: THE model (judge reads it): universe rule, fit, impliedValue, looCheck,
-  bootstrapRanks, nearestPeers, farmPlan, stepText. Classic script: global `Launchscope` + module.exports.
-- `dashboard/radar.js`: page logic; `index.html`; `style.css`. Names chosen so the dossier's path order is
-  index.html, model.js, radar.js, style.css (the model is read second, CSS last).
-- `tools/gate.mjs` (local gate + determinism), `tools/shoot.mjs` (Playwright screenshots).
+- `main.ts`: reads + validates the snapshot, loads `dashboard/model.js` (createRequire), writes board.json
+  (181 rows, farm_steps via stepText/summaryText which live in main.ts), data.js at /output/data.js =
+  { model_version, snapshot (raw, as read), fit {a,b}, board [[slug, rank, value, p25, p75, rankLo, rankHi,
+  verdict, net]...] }, copies dashboard/ + screenshots/, writes dossier.json.
+- `dashboard/model.js`: THE model (judge reads it): selectUniverse, fitPoints/fitCurve, impliedValue,
+  looCheck, bootstrapRanks, nearestPeers, depositAction/farmPlan, oddsText, buildRadar.
+- `dashboard/radar.js`: page. deriveAll runs buildRadar(snapshot) in the browser and checks every row
+  against board.json; board (to come / already trades tabs, filters, sort, anchors), renderDetail, renderMethod.
+- Dossier path order: index.html, model.js, radar.js, style.css (model read 2nd, CSS last).
 
-## Decisions (with numbers, snapshot as_of 2026-11-14)
-- Token status: `trades` = mcap_usd > 0 (128); `recorded` = token fields but no usable mcap (288, incl. 15
-  with mcap 0; not ranked, not fit); `none` = records no token (342).
-- Ranked universe (173 = 40 watchlist + 133): records no token, house watchlist rule minus the floor
-  (product categories, versioned names, exchange names, wrapped/staked words), plus: above the floor but
-  off the watchlist => DefiLlama files it under a parent (set aside); name stem shared with a protocol that
-  records a token => set aside (GMX Solana, Kava Mint, Manta CeDeFi...). Watchlist rows always ranked (Mezo
-  Earn carries a note). 169 set aside, reasons shown.
-- Brief asked >=200 board rows; the honest to-come universe is 173. Padding would rank wrapped/staked/
-  parented products as "to come" (criterion 2). Gate needs only 100 rows / 60 non-watchlist.
-- board.json ranks = protocols that record no token only; traded tokens are unranked anchors on the page.
-- Value = 10^(a + b*log10(TVL/1e8) + family offset) * growthTilt * seasonTilt.
-  Fit on 128 traded: a=7.20, b=0.52 (log-log OLS, priors taken out first); 8 category families, offsets
-  shrunk by K=8. LOO (128 traded) median miss / mean |log10 miss| / within 3x / Spearman:
-  one multiple 4.77x 0.773 35% 0.43; + size curve 3.40x 0.693 42% 0.40; + family 3.24x 0.678 48% 0.42;
-  + priors (full) 3.11x 0.679 48% 0.42. Spearman barely moves: order is set by TVL (curve rescales it). Growth/seasoning do NOT help out of sample (traded set's
-  7-day changes were nearly all negative this week; listed_at of a traded token measures tracking, not
-  token-free time), so they are bounded priors: growth x0.80-1.25 (0.5 per unit), seasoning
-  1-0.4*exp(-days/240), unknown listed_at = 365 days. Say so on the method view.
-- Bootstrap: 200 refits (mulberry32 seed 20261114) on resampled traded tokens; band = P25-P75 of refit
-  value x one resampled residual (predictive, wide: ~x0.3 to x2.6); rank range = P10-P90 of rank (refits only).
-- Farm plan: chain = cheapest of top-3 chains by TVL (DefiLlama orders chains by TVL), gas table = labelled
-  assumptions; deposit = clamp(max(TVL/50k, 3x fixed costs / slice-per-$), $250, $5,000); hold =
-  6..12 weeks (younger = longer); stop = TVL drop of clamp(2*|7d change|, 10, 35)%; slice = 10% airdrop
-  share x value x deposit/TVL; verdict from break-even launch odds = (fees + T-bill 4% on capital)/slice:
-  <=25% farm, <=60% marginal, else skip. Currently 21 farm / 107 marginal / 45 skip.
-- Screenshot budget: gate caps dossier at 1.5 MiB and images are base64 (x4/3), so 4 images must total
-  <= ~1.1 MB raw => <= 270 KB each (brief's 300-350 KB each would overflow with 4).
+## Budgets (binding)
+- Dossier source text must stay <= 65,536 bytes uncut: now 65,093 (dashboard files 64,745 bytes; dossier
+  headings add ~350). Any addition must be paid for by a trim. The gate fails on a cut (our strict rule).
+- Dossier <= 1.5 MiB: now 1.38 MB. 4 screenshots, each <= 270 KB (base64 grows them by a third).
 
-## Page (M2)
-- Routes: `#board?fam=&chain=&verdict=&watch=&q=&anchors=1&sort=value&dir=desc` (defaults omitted),
-  `#p/<slug>`, `#method`. Filter changes use history.replaceState (no re-render of the toolbar on typing).
-- `deriveAll` (radar.js) refits + recomputes values, 200-run bootstrap, plans; KPI strip shows
-  "board.json = this page" with counts (173/173 each). Fails visibly (red) if anything differs.
-- Anchors: traded tokens within [min shown value /1.5, max *1.5], same filters, only in value order,
-  thinned to one per ~6 ranked rows (22 on the full board).
-- Detail: value + rank range + band; equation tiles (size curve x family x growth x seasoning = value);
-  band strip with numbered peer diamonds; peers table; "farm arithmetic" (slice and break-even formulas
-  with the row's numbers); plan card: timeline SVG, 9 costed/timed steps, totals, honesty box.
-- Method: scatter (traded grey, ranked accent, fit line), LOO table (live looCheck), family offsets,
-  universe accounting, note to the judge (function names).
-- Screenshots: 1-board (#board), 2-detail (#p/opentrade, watchlist rank 10, RWA, marginal 46%),
-  3-filtered (#board?fam=trade&verdict=farm&sort=perhour: 20 rows), 4-method. PNG 230-260 KB each.
-- Budgets now: dashboard source ~62.9 KB, dossier text ~63.2 KB of 65,536 (uncut), dossier 1.45 MB of
-  1.57 MB. Any addition must be paid for by a trim.
+## Model (snapshot as_of 2026-11-14)
+- Universe: 758 protocols; 128 trade (mcap > 0: fit + anchors), 288 record a token without mcap (not
+  ranked), 342 record no token -> 181 ranked (40/40 watchlist), 161 set aside.
+  Set-aside rules: house watchlist rule minus floor (product categories, versioned names, wrapped/staked
+  words); name stem shared with a token-recording protocol (generic words + every chain's first word are
+  excluded from stems, from the data); chain venue (/^\S+ (DEX|AMM)$/ or first word = a chain's first word).
+  Watchlist rows are always ranked (4 carry a chain-named note). Above-floor-but-off-watchlist rows (=
+  DefiLlama parent) are ranked with a note (18), not dropped: the watchlist is a floor, not a ceiling.
+- Value = 10^(a + b*log10(TVL/1e8) + family offset) * growthTilt * seasonTilt. a=7.25, b=0.52.
+  Family offsets: mean residual clipped at +-1 dex, shrunk by K=8. Priors: growth x0.8-1.25 (0.5/unit),
+  seasoning 1-0.4*exp(-days/240), unknown listed_at = 365.
+- LOO median miss: one multiple 4.77x, + curve 3.40x, + family 3.31x, + priors 3.20x (mean |log miss|
+  0.773, 0.693, 0.674, 0.676). Priors stated as not earning out of sample. Spearman column dropped
+  (pooled-LOO artifact).
+- Bootstrap 200 refits, seed 20261114: band = P25-P75 of refit x resampled residual; rank range = P10-P90
+  over refits only (stated on the board).
+- Peers: same family, closest TVL, only traded tokens within 10x of the curve (extreme multiples 43 -> 1).
+- Farm plan: chain = cheapest of top-3 (DefiLlama orders chains by TVL); funding asset by chain/category
+  (BTC chains/BTC categories -> BTC, Bittensor -> TAO, staking -> native coin you hold, else USDC);
+  category actions incl. CDP savings pool, collateral vault, governance lock, stable mint, RWA fund (KYC
+  step, deposit day 3), staking (no bridge legs, unbonding step); exit waits by category; stop = 2x the
+  7-day swing (10-35%), costed like the exit; deposit = clamp(max(TVL/10k, 3x fixed/slice-per-$), 500,
+  5000); hold 6-12 weeks (younger = longer); income forgone = deposit x (T-bill 4% - assumed deposit yield
+  by family) x days; slice = 10% x value x deposit/TVL; break-even = costs/slice = the chance a token
+  launches, with a snapshot, inside the hold; verdict on rounded odds: <=10% farm, <=25% marginal, else
+  skip -> 58 / 78 / 45.
+
+## M3 critique: the 5 weakest points (judge-eye read of the M2 screenshots + a 4-lens judge panel)
+1. C1, coverage asserted not computed: "40/40" printed the watchlist size twice and the page never ran
+   the universe rule. FIXED: data.js ships the raw snapshot; deriveAll runs buildRadar in the browser,
+   counts watchlist coverage from the rows and checks ranks, values, bands, rank ranges and plans (181/181).
+2. C2, traded vs to-come separation and the universe: traded tokens only as thinned grey rows; chain-native
+   venues (XRPL DEX, Stellar DEX/AMM, Katana DEX, Plasma One...) ranked as "to come"; 20 above-floor
+   protocols dropped by using the watchlist as a ceiling; a dead hard-coded exchange-name list. FIXED:
+   "Still to come | Already trades" tabs (all 128 traded tokens with market cap, x TVL, our curve, market /
+   curve); chain-venue rule; parented rows ranked with a note; EXCHANGE_NAME removed; anchors show our
+   curve's price; family misses clipped at 10x (Trading x1.72 -> x1.47, set by one outlier before).
+3. C3, plans impossible for some categories and too harsh overall: USDC to Bitcoin/Bittensor, CDP "supply
+   USDC", staking with USDC bridge legs, Chain rows bridging twice, KYC timed on day 0, full 4% T-bill
+   charge on yield-bearing deposits (all 40 watchlist rows skip/marginal), odds >100% printed, templated
+   steps. FIXED: see Farm plan above; 10-11 steps by mechanism, row numbers in generic steps, exit waits.
+4. C2 honesty details: pooled-LOO Spearman contradicted "order is set by TVL"; rank range vs band meaning
+   unstated; peers with absurd multiples (0.000x, 14.5x). FIXED: column dropped, explain line states what
+   each measures, peers within 10x of the curve.
+5. C4/C5 legibility: 12 px secondary text (~8.5 px at the judge's 1024 px), faint band bars and anchor
+   text, double sort arrow, inert anchors toggle, $/h column read as sub-minimum wage, back link lost
+   filters. FIXED: 13 px, darker greys, one arrow + sortable affordance, toggle dimmed where it cannot
+   apply, net $ (or "needs $X launch value") instead of $/h, back link keeps the board state. Paid for
+   by removing the board's band-bar column and the detail band strip (numbers remain in text).
 
 ## Status
-- M1 done (b1bcfe7): valid entry, gate 8/8, minimal page.
-- M2 done: full page, 4 screenshots, README. Background review workflow (gate/model/plan) running;
-  confirmed findings go into M3.
-- Next (M3): judge-eye critique of the 4 screenshots, 5 weakest points listed here, fixed.
+- M1 b1bcfe7, M2 2a5f60e, M3 = this commit. Gate 8/8 + determinism.
+- Possible next steps (budget permitting: free bytes first): sibling grouping for products of one
+  pre-token protocol (Felix Vaults/Felix CDP, Figure Markets Prime/Exchange, Avant avUSD/avETH); prev/next
+  links in the detail view; method legend wraps mid-formula; consider a screenshot of the traded tab.

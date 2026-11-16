@@ -96,12 +96,26 @@ const snap = parseSnapshot(readFileSync(inputFile, 'utf8'));
 const radar = L.buildRadar(snap);
 const r4 = (n: number) => Math.round(n * 1e4) / 1e4;
 
+/** One plan step as a farm_steps string: when, what, what it costs and how long it takes. */
+function stepText(s: any, weeks: number): string {
+  const when = s.day === null ? 'Any day' : s.every ? `Weekly to week ${weeks}` : `Day ${s.day}`;
+  const time = s.every ? `5 min a week, ${s.minutes} min in all` : `${s.minutes} min`;
+  return `${when}: ${s.text} Cost: ${L.usd(s.cost)}. Time: ${time}.`;
+}
+/** The plan's last farm_steps string: its totals, the slice if a token launches, break-even odds and verdict. */
+function summaryText(plan: any, value: number): string {
+  const odds = plan.breakEven > 1 ? '' : `break-even odds ${Math.round(plan.breakEven * 100)}%, `;
+  return `Totals (the stop step replaces the exit, so it is not added): ${L.usd(plan.costs)} of fees and gas, ${L.usd(plan.capitalCost)} of income forgone ` +
+    `(T-bills less the deposit's own yield) on ${L.usd(plan.deposit)} for ${plan.weeks} weeks, ${plan.minutes} min of your time. If a token launches at our ` +
+    `model's ${L.usd(value)}, the slice is ${L.usd(plan.slice)}: ${odds}${L.oddsText(plan, value)}. Verdict: ${L.VERDICT_LABEL[plan.verdict]}.`;
+}
+
 const board = radar.rows.map((row: any) => ({
   rank: row.rank,
   slug: row.p.slug,
   name: row.p.name,
   implied_value_usd: row.iv.value,
-  farm_steps: [...row.plan.steps.map((s: any) => L.stepText(s, row.plan.weeks)), L.summaryText(row.plan, row.iv.value)],
+  farm_steps: [...row.plan.steps.map((s: any) => stepText(s, row.plan.weeks)), summaryText(row.plan, row.iv.value)],
   token_status: 'records no token',
   on_watchlist: row.watch,
   category: row.p.category,
@@ -140,30 +154,13 @@ function boardIssue(rows: any[], s: Snapshot): string | null {
 const issue = boardIssue(board, snap);
 if (issue !== null) fail(`the model wrote a board the gate refuses: ${issue}`);
 
-// What the page re-derives from: raw snapshot fields per row, plus our outputs to check its results against.
+// What the page re-derives from: the whole snapshot as read, and board.json's numbers to check its own
+// run of buildRadar against (rank, value, band, rank range, verdict and net, by slug).
 const data = {
-  as_of: snap.as_of,
-  source: snap.source,
-  floor_usd: snap.floor_usd,
   model_version: L.MODEL.version,
-  counts: {
-    protocols: snap.protocols.length,
-    watchlist: snap.watchlist.length,
-    ranked: radar.rows.length,
-    traded: radar.universe.traded.length,
-    set_aside: radar.universe.setAside.length,
-    recorded: radar.universe.recorded,
-  },
-  fit: radar.fit,
-  loo: radar.loo,
-  traded: radar.universe.traded.map((p: Protocol) => ({ slug: p.slug, name: p.name, category: p.category, chains: p.chains, tvl_usd: p.tvl_usd, change_7d: p.change_7d, listed_at: p.listed_at, mcap_usd: p.mcap_usd })),
-  rows: radar.rows.map((row: any) => ({
-    slug: row.p.slug, name: row.p.name, category: row.p.category, chains: row.p.chains, tvl_usd: row.p.tvl_usd,
-    change_7d: row.p.change_7d, listed_at: row.p.listed_at, watch: row.watch, note: row.note,
-    rank: row.rank, value: row.iv.value, p25: row.band.p25, p75: row.band.p75, rank_lo: row.band.rankLo, rank_hi: row.band.rankHi,
-    net: Math.round(row.plan.net), verdict: row.plan.verdict,
-  })),
-  set_aside: radar.universe.setAside,
+  snapshot: snap,
+  fit: { a: radar.fit.a, b: radar.fit.b },
+  board: board.map((r: any) => [r.slug, r.rank, r.implied_value_usd, r.band_p25_usd, r.band_p75_usd, r.rank_range[0], r.rank_range[1], r.farm.verdict, Math.round(radar.rows[r.rank - 1].plan.net)]),
 };
 
 // ---------------------------------------------------------------- the files
@@ -198,9 +195,9 @@ if (shots.length < 3 || shots.length > 4) fail(`screenshots/ holds ${shots.lengt
 // Written last: the scorer rebuilds the dossier from this directory and compares bytes.
 writeFileSync(join(out, 'dossier.json'), buildDossier(out, { text_max_bytes: TEXT_MAX_BYTES, screenshots: SCREENSHOT_CAPS, dashboard: DASHBOARD_CAPS }));
 
-const c = data.counts;
+const u = radar.universe;
 process.stdout.write(
-  `launchscope: ${c.protocols} protocols; ranked ${c.ranked} that record no token (${c.watchlist} watchlist), ` +
-    `fit on ${c.traded} traded tokens, ${c.set_aside} set aside, ${c.recorded} record a token without a market cap\n` +
+  `launchscope: ${snap.protocols.length} protocols; ranked ${radar.rows.length} that record no token (${board.filter((r: any) => r.on_watchlist).length}/${snap.watchlist.length} watchlist), ` +
+    `fit on ${u.traded.length} traded tokens, ${u.setAside.length} set aside, ${u.recorded} record a token without a market cap\n` +
     `launchscope: wrote board.json, data.js, dashboard/ (${pages.length} files), screenshots/ (${shots.length}) and dossier.json to ${out}\n`,
 );

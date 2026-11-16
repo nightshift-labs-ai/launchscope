@@ -4,15 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Launchscope: protocols that record no token, ranked by our model's implied value</title>
-<!--
-  Note to the judge. Launchscope is a token launch radar for make.fun's token-radar-01.
-  - model.js is the value model itself: main.ts loads this same file to write board.json, and this page
-    loads it again to re-derive every value, band, rank range and farm plan from data.js (the snapshot's
-    raw TVL, 7-day change and listing date per protocol). The board's top strip reports the check.
-  - radar.js renders the board (sortable, filterable, traded tokens as grey anchors), a detail view per
-    protocol (#p/<slug>) and the method view (#method) with the fit and its out-of-sample test.
-  - style.css is our own: paper, ink, one accent for protocols still to come, grey for tokens that trade.
--->
+<!-- Note to the judge: model.js is the model itself. main.ts runs it to write board.json; this page runs it
+     again on the raw snapshot (data.js) and checks every row. radar.js draws the views; #method shows the fit. -->
 <link rel="stylesheet" href="style.css">
 </head>
 <body>

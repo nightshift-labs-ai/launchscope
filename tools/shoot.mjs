@@ -28,7 +28,7 @@ const { chromium } = createRequire(pwDir)('playwright');
 const SHOTS = [
   { name: '1-board', hash: '#board' },
   { name: '2-detail', hash: '#p/opentrade' },
-  { name: '3-filtered', hash: '#board?fam=trade&verdict=farm&sort=perhour' },
+  { name: '3-filtered', hash: '#board?chain=Base&verdict=farm&sort=net' },
   { name: '4-method', hash: '#method' },
 ];
 

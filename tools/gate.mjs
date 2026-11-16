@@ -105,7 +105,7 @@ function urlInJs(text) {
       count++;
       bytes += st.size;
       if (p.endsWith('.css')) css++;
-      if (/\.(m?js)$/.test(p)) js++;
+      if (p.endsWith('.js')) js++; // the scorer asks for a .js file: an .mjs does not count
       if (/\.(html|css|js|json|mjs|svg|md|txt)$/.test(p)) {
         const text = readFileSync(join(root, p), 'utf8');
         textBytes += st.size;
@@ -251,6 +251,10 @@ report();
 function report() {
   const width = Math.max(...results.map((r) => r.row.length));
   for (const r of results) console.log(`${r.pass ? 'PASS' : 'FAIL'}  ${r.row.padEnd(width)}  ${r.detail}`);
+  // The scorer runs the committed tree: warn about entry files a commit would leave out.
+  const git = spawnSync('git', ['-C', repo, 'status', '--porcelain', '--untracked-files=all', '--', 'main.ts', 'dashboard', 'screenshots', 'vendor', '.makefun', 'LICENSE'], { encoding: 'utf8' });
+  const loose = (git.stdout || '').split('\n').filter((l) => l.startsWith('??') || l.startsWith(' D'));
+  if (loose.length) console.log(`warning: not staged for commit (untracked or deleted): ${loose.map((l) => l.slice(3)).join(', ')}`);
   const failed = results.filter((r) => !r.pass).length;
   console.log(failed ? `gate: ${failed} row${failed === 1 ? '' : 's'} failed` : `gate: all ${results.length} rows pass`);
   process.exit(failed ? 1 : 0);
