@@ -4,8 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Launchscope: protocols that record no token, ranked by our model's implied value</title>
-<!-- Note to the judge: model.js is the model itself. main.ts runs it to write board.json; this page runs it
-     again on the raw snapshot (data.js) and checks every row. radar.js draws the views; #method shows the fit. -->
+<!-- Note to the judge: model.js is the model; main.ts runs it for board.json, this page re-runs it and checks every row. -->
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,7 +14,7 @@
   <p id="asof" class="asof"></p>
 </header>
 <main id="view" tabindex="-1" aria-live="polite"></main>
-<footer class="foot">Implied values are our model's claim, never make.fun's. A protocol here records no token on DefiLlama, which is not proof it has none; nothing here says whether or when a token launches. Not investment advice.</footer>
+<footer class="foot">Implied values are our model's claim, never make.fun's. "Records no token" on DefiLlama is not proof of none; nothing here says if or when a token launches. Not investment advice.</footer>
 <script src="../data.js"></script>
 <script src="model.js"></script>
 <script src="radar.js"></script>

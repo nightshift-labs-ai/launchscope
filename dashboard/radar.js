@@ -17,14 +17,14 @@
   function deriveAll() {
     const R = L.buildRadar(S), want = new Map(D.board.map((b) => [b[0], b]));
     const check = { n: R.rows.length, ranked: 0, values: 0, bands: 0, ranks: 0, plans: 0, fit: Math.abs(R.fit.a - D.fit.a) < 1e-9 && Math.abs(R.fit.b - D.fit.b) < 1e-9 };
+    const near = (x, y) => Math.abs(x - y) <= 1;
     const rows = R.rows.map((x) => {
-      const r = Object.assign({}, x.p, { rank: x.rank, watch: x.watch, note: x.note, iv: x.iv, plan: x.plan, peers: x.peers, boot: x.band });
-      const b = want.get(r.slug) || [];
-      if (b[1] === r.rank) check.ranked++;
-      if (Math.abs(b[2] - r.iv.value) <= 1) check.values++;
-      if (Math.abs(b[3] - r.boot.p25) <= 1 && Math.abs(b[4] - r.boot.p75) <= 1) check.bands++;
-      if (b[5] === r.boot.rankLo && b[6] === r.boot.rankHi) check.ranks++;
-      if (b[7] === r.plan.verdict && Math.abs(b[8] - Math.round(r.plan.net)) <= 1) check.plans++;
+      const r = Object.assign({}, x.p, { rank: x.rank, watch: x.watch, note: x.note, iv: x.iv, plan: x.plan, peers: x.peers, boot: x.band }), b = want.get(r.slug) || [];
+      check.ranked += b[1] === r.rank;
+      check.values += near(b[2], r.iv.value);
+      check.bands += near(b[3], r.boot.p25) && near(b[4], r.boot.p75);
+      check.ranks += b[5] === r.boot.rankLo && b[6] === r.boot.rankHi;
+      check.plans += b[7] === r.plan.verdict && near(b[8], Math.round(r.plan.net));
       return r;
     });
     check.ok = check.fit && D.board.length === check.n && [check.ranked, check.values, check.bands, check.ranks, check.plans].every((k) => k === check.n);
@@ -123,7 +123,7 @@
       .map((t) => ({ t, curve: L.impliedValue(t, M.fit, S.as_of).value })).sort((a, b) => b.t.mcap_usd - a.t.mcap_usd || (a.t.slug < b.t.slug ? -1 : 1));
     const rows = list.map(({ t, curve }) => `<tr class="anchor"><td class="name">${esc(t.name)}<small>${esc(t.category || 'no category')}</small></td><td class="num">${L.usd(t.tvl_usd)}</td><td class="num">${pct(t.change_7d)}</td>
       <td class="num val"><b>${L.usd(t.mcap_usd)}</b></td><td class="num">${(t.mcap_usd / t.tvl_usd).toFixed(2)}×</td><td class="num">${L.usd(curve)}</td><td class="num">${times(t.mcap_usd / curve)}</td></tr>`).join('');
-    return `<div class="status"><span><b>${list.length}</b> tokens already trade: the data the curve is fit on, never ranked, sorted by market cap</span></div>
+    return `<div class="status"><span><b>${list.length}</b> tokens already trade: the curve's data, never ranked, by market cap</span></div>
       <table class="board"><thead><tr><th>Token that trades</th><th class="num">TVL</th><th class="num">7d TVL</th><th class="num">Market cap</th><th class="num">× TVL</th><th class="num">Our curve</th><th class="num">Market ÷ curve</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
 
@@ -137,14 +137,14 @@
     const chip = (key, val, label, n) => `<button class="chip ${st[key] === val ? 'on' : ''}" data-k="${key}" data-v="${esc(val)}">${esc(label)} <small>${n}</small></button>`;
     const chains = Object.keys(chainCount).sort((a, b) => chainCount[b] - chainCount[a] || (a < b ? -1 : 1)).slice(0, 30);
     $('#view').innerHTML = `${kpis()}
-      <p class="explain">Implied value = size curve on TVL × category family × 7-day growth × time without a token, fit on ${M.traded.length} traded tokens. Under each rank: its range over 200 refits; under each value: the P25–P75 band, which adds a protocol's own miss. Big pools farm poorly: a $5,000 deposit is a thin slice. Grey rows trade already: market cap for scale, no rank.</p>
+      <p class="explain">Implied value = size curve on TVL × category family × 7-day growth × time without a token, fit on ${M.traded.length} traded tokens. Under each rank: its range over 200 refits; the band adds a protocol's own miss. Big pools farm poorly: $5,000 is a thin slice. Grey rows trade already: no rank.</p>
       <div class="toolbar">
         <div class="group seg">${chip('tab', '', 'Still to come', M.rows.length)}${chip('tab', 'traded', 'Already trades', M.traded.length)}</div>
         <input id="q" type="search" placeholder="Search a protocol" value="${esc(st.q)}" aria-label="Search">
         <div class="group">${Object.keys(L.FAMILY_LABEL).filter((f) => famCount[f]).map((f) => chip('fam', f, L.FAMILY_LABEL[f], famCount[f])).join('')}</div>
         <select id="chain" aria-label="Chain"><option value="">All chains</option>${chains.map((c) => `<option ${st.chain === c ? 'selected' : ''} value="${esc(c)}">${esc(c)} (${chainCount[c]})</option>`).join('')}</select>
         <div class="group">${['farm', 'marginal', 'skip'].map((v) => chip('verdict', v, L.VERDICT_LABEL[v], verdictCount[v] || 0)).join('')}${chip('watch', '1', 'Watchlist', M.watch)}</div>
-        <label class="toggle ${st.sort !== 'value' || st.verdict || st.watch || st.q ? 'off' : ''}"><input id="anchors" type="checkbox" ${st.anchors === '1' ? 'checked' : ''}> Traded anchors (value order only)</label>
+        <label class="toggle ${st.sort !== 'value' || st.verdict || st.watch || st.q ? 'off' : ''}"><input id="anchors" type="checkbox" ${st.anchors === '1' ? 'checked' : ''}> Traded anchors (by value)</label>
       </div>
       <div id="results"></div>`;
     renderResults(st);
@@ -237,7 +237,7 @@
           <h2>The farm arithmetic</h2>
           <p class="math">Slice if a token launches = ${A.airdropShare * 100}% airdrop share × ${L.usd(r.iv.value)} × ${L.usd(p.deposit)} / ${L.usd(r.tvl_usd)} TVL = <b>${L.usd(p.slice)}</b><br>
           Break-even = (${L.usd(p.costs)} fees + ${L.usd(p.capitalCost)} income forgone at ${(p.carry * 100).toFixed(1)}% a year for ${p.weeks} weeks) / ${L.usd(p.slice)} = <b>${odds(p.breakEven)}</b>: ${esc(L.oddsText(p, r.iv.value))}</p>
-          <p class="assume">Our estimates: gas ${L.usd(p.gas)} a transaction on ${esc(p.chain)}, ${L.usd(A.bridgeFee)} a bridge leg, T-bills ${A.tbillRate * 100}% less the deposit's assumed yield. Deposit grows with TVL (${L.usd(A.depositMin)}–${L.usd(A.depositMax)}); younger protocols are held longer; the stop is twice the 7-day swing.</p>
+          <p class="assume">Our estimates: gas ${L.usd(p.gas)} a transaction on ${esc(p.chain)}, ${L.usd(A.bridgeFee)} a bridge leg, T-bills ${A.tbillRate * 100}% less the deposit's assumed yield. Deposit grows with TVL (${L.usd(A.depositMin)}–${L.usd(A.depositMax)}); younger protocols are held longer; stop = twice the 7-day swing.</p>
         </section>
         <section class="card plan">
           <h2>Farm plan <small>${esc(p.chain)} · ${L.usd(p.deposit)} · ${p.weeks} weeks</small><i class="verdict v-${p.verdict}">${L.VERDICT_LABEL[p.verdict]}</i></h2>
@@ -268,10 +268,9 @@
   function renderMethod() {
     const loo = M.R.loo, f = M.fit, u = M.R.universe;
     const looRows = loo.map((v) => `<tr><td>${esc(v.label)}</td><td class="num"><b>${v.medianMiss.toFixed(2)}×</b></td><td class="num">${v.meanLogMiss.toFixed(3)}</td><td class="num">${Math.round(v.within3x * 100)}%</td></tr>`).join('');
-    const famN = {}, famR = {};
+    const famN = {};
     M.traded.forEach((t) => { const k = L.familyOf(t.category); famN[k] = (famN[k] || 0) + 1; });
-    M.rows.forEach((r) => { famR[r.iv.fam] = (famR[r.iv.fam] || 0) + 1; });
-    const famRows = Object.keys(f.fam).map((k) => `<tr><td>${L.FAMILY_LABEL[k]}</td><td class="num">${famN[k] || 0}</td><td class="num">${famR[k] || 0}</td><td class="num">${times(10 ** f.fam[k])}</td></tr>`).join('');
+    const fams = Object.keys(f.fam).map((k) => `${L.FAMILY_LABEL[k]} <b>${times(10 ** f.fam[k])}</b> (${famN[k]})`).join(' · ');
     const why = {};
     u.setAside.forEach((s) => { const k = s.reason.startsWith('shares') ? 'shares a name with a protocol that records a token' : s.reason.split(/[:,]/)[0]; why[k] = (why[k] || 0) + 1; });
     const c = { protocols: S.protocols.length, watchlist: S.watchlist.length, ranked: M.rows.length, traded: M.traded.length, set_aside: u.setAside.length, recorded: u.recorded };
@@ -288,8 +287,7 @@
       <section class="card"><h2>Out of sample: each traded token priced by a fit that never saw it</h2>
         <table class="mini"><thead><tr><th>Model</th><th class="num">Median miss</th><th class="num">Mean |log miss|</th><th class="num">Within 3×</th></tr></thead><tbody>${looRows}</tbody></table>
         <p>Size curve and family earn their place. Growth and seasoning do not cut the miss (${loo[3].meanLogMiss.toFixed(3)} vs ${loo[2].meanLogMiss.toFixed(3)}): traded TVL fell almost everywhere this week, and a traded token's age is not time without a token. So both are bounded priors: growth tilts value by half the 7-day change (×${L.MODEL.growthMin}–×${L.MODEL.growthMax}); seasoning discounts a new protocol up to ${L.MODEL.seasonDepth * 100}%, fading over ${L.MODEL.seasonDays} days. A ${loo[3].medianMiss.toFixed(1)}× median miss is why every row shows a band.</p>
-        <h2>Category families <small>offset = mean miss shrunk by ${L.MODEL.familyShrinkK} pseudo-tokens</small></h2>
-        <table class="mini"><thead><tr><th>Family</th><th class="num">Traded</th><th class="num">Ranked</th><th class="num">Offset</th></tr></thead><tbody>${famRows}</tbody></table>
+        <h2>Category family offsets <small>mean miss, clipped at 10×, shrunk by ${L.MODEL.familyShrinkK} pseudo-tokens (traded tokens)</small></h2><p>${fams}</p>
         <h2>From ${c.protocols} protocols to ${c.ranked} ranks</h2>
         <p>${c.traded} trade (fit and anchors) · ${c.recorded} record a token with no market cap (not ranked) · ${c.ranked + c.set_aside} record no token: ${c.ranked} ranked, ${c.set_aside} set aside as ${Object.keys(why).map((k) => `${esc(k)} (${why[k]})`).join(', ')}.</p></section></div>`;
   }

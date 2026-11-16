@@ -1,11 +1,7 @@
-/* Launchscope model: the one file that turns the DefiLlama snapshot into the board. main.ts runs it to
- * write board.json; the page runs buildRadar again on the raw snapshot and checks every row. No value is
- * set by a name: TVL, category, 7-day TVL change and days tracked with no token decide it.
- *
+/* Launchscope model: snapshot in, board out. main.ts runs it for board.json; the page re-runs buildRadar.
  *   value = 10^(a + b * log10(TVL / $100M) + family offset) * growthTilt * seasonTilt
- *   a, b: least squares on logs over the snapshot's traded tokens (market cap against TVL);
- *   family: each category family's mean miss, shrunk toward 0; tilts: bounded priors, tested by looCheck.
- */
+ * a, b: least squares on logs over the traded tokens (market cap vs TVL); family offset: shrunk mean miss;
+ * tilts: bounded priors for 7-day growth and days with no token. No value is set by a name. */
 (function (root) {
   'use strict';
 
@@ -25,13 +21,13 @@
 
   // Farm-plan assumptions, stated on every plan (the snapshot carries no gas, fee or yield figures).
   const ASSUME = {
-    tbillRate: 0.04, // a year: what the capital would earn in T-bills instead
-    depositYield: { lend: 0.03, vault: 0.03, rwa: 0.035, stake: 0.03, trade: 0.02 }, // what the deposit itself earns, by family
-    airdropShare: 0.1, // share of a launched token's value paid to depositors, pro rata to TVL
-    farmOdds: 0.1, // worth farming if it pays when 1 hold in 10 sees a launch...
-    marginalOdds: 0.25, // ...marginal up to 1 in 4, else skip
-    bridgeFee: 1, // USD to move USDC onto the chain, and again to move it back
-    depositPerTvl: 1 / 10000, // a deposit stays a sliver of the protocol...
+    tbillRate: 0.04, // a year, what the capital would earn instead
+    depositYield: { lend: 0.03, vault: 0.03, rwa: 0.035, stake: 0.03, trade: 0.02 }, // what the deposit itself earns
+    airdropShare: 0.1, // of a launched token's value, paid to depositors pro rata to TVL
+    farmOdds: 0.1, // worth farming if it pays when 1 hold in 10 sees a launch, marginal up to 1 in 4
+    marginalOdds: 0.25,
+    bridgeFee: 1, // USD per bridge leg
+    depositPerTvl: 1 / 10000,
     depositMin: 500,
     depositMax: 5000,
     gasDefault: 0.5, // a chain missing from the tiers below
@@ -59,9 +55,7 @@
   const log10 = Math.log10;
 
   function quantile(values, q) {
-    const s = values.slice().sort((a, b) => a - b);
-    const at = (s.length - 1) * q;
-    const lo = Math.floor(at);
+    const s = values.slice().sort((a, b) => a - b), at = (s.length - 1) * q, lo = Math.floor(at);
     return lo + 1 < s.length ? s[lo] + (s[lo + 1] - s[lo]) * (at - lo) : s[lo];
   }
 
@@ -82,11 +76,8 @@
     if (a >= 1e9) return `${sign}$${(a / 1e9).toFixed(a >= 1e10 ? 1 : 2)}B`;
     if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(a >= 1e8 ? 0 : 1)}M`;
     if (a >= 1e4) return `${sign}$${(a / 1e3).toFixed(0)}K`;
-    if (a >= 10) return `${sign}$${groupThousands(Math.round(a))}`;
+    if (a >= 10) return `${sign}$${String(Math.round(a)).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
     return `${sign}$${a.toFixed(2)}`;
-  }
-  function groupThousands(n) {
-    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
 
   /** Whole days from listed_at to as_of; null when DefiLlama gives no date. */
@@ -112,14 +103,13 @@
   const familyOf = (category) => FAMILY_OF[category] || 'other';
 
   // The house's watchlist rule, minus its $50M floor: the same exclusions applied to every size.
-  const PRODUCT_CATEGORIES = ['Bridge', 'Canonical Bridge', 'Liquid Staking', 'Liquid Restaking', 'Restaked BTC', 'CEX'];
+  const PRODUCT_CATEGORIES = 'Bridge|Canonical Bridge|Liquid Staking|Liquid Restaking|Restaked BTC|CEX'.split('|');
   const VERSIONED = /\s(V\d+(\.\d+)?|v\d+(\.\d+)?|\d+\.\d+)$/;
   const WRAP_WORD = /\b(wrapped|staked|staking)\b/i;
   // Our two additions: a chain's own trading venue ("XRPL DEX"), and a name shared with a token-bearing protocol.
   const CHAIN_VENUE = /^\S+ (DEX|AMM)$/i;
   // First words that tie no two protocols together; every chain's first word joins them from the data.
-  const GENERIC_WORDS = ['the', 'liquid', 'btc', 'eth', 'usd', 'yield', 'finance', 'protocol', 'network', 'capital', 'labs', 'dao', 'earn',
-    'vault', 'vaults', 'lending', 'dex', 'bridge', 'pool', 'project', 'stake', 'native', 'super', 'open', 'one', 'prime'];
+  const GENERIC_WORDS = 'the liquid btc eth usd yield finance protocol network capital labs dao earn vault vaults lending dex bridge pool project stake native super open one prime'.split(' ');
   const firstWord = (s) => s.toLowerCase().split(/[^a-z0-9.]+/).filter(Boolean)[0] || '';
 
   /** trades (a market cap), recorded (a token but no market cap) or none (records no token). */
@@ -236,12 +226,10 @@
 
   // -- honesty: out-of-sample checks and the bootstrap
 
-  const VARIANTS = [
-    { key: 'multiple', label: 'TVL x one multiple', slope: false, families: false, priors: false },
-    { key: 'curve', label: '+ size curve (slope b)', slope: true, families: false, priors: false },
-    { key: 'family', label: '+ category family', slope: true, families: true, priors: false },
-    { key: 'full', label: '+ growth & seasoning priors', slope: true, families: true, priors: true },
-  ];
+  // Nested variants, each adding one part: [key, label, fitted slope, family offsets, priors].
+  const VARIANTS = [['multiple', 'TVL x one multiple', 0, 0, 0], ['curve', '+ size curve (slope b)', 1, 0, 0],
+    ['family', '+ category family', 1, 1, 0], ['full', '+ growth & seasoning priors', 1, 1, 1]]
+    .map(([key, label, slope, families, priors]) => ({ key, label, slope: !!slope, families: !!families, priors: !!priors }));
 
   /** Each traded token predicted by a fit that never saw it, for each nested variant of the model. */
   function looCheck(traded, asOf) {
@@ -409,7 +397,7 @@
 
   const api = {
     MODEL, ASSUME, HONESTY, FAMILY_LABEL, VERDICT_LABEL, VARIANTS,
-    usd, groupThousands, quantile, mulberry32, daysSince, familyOf, tokenStatus, nameStem, selectUniverse,
+    usd, quantile, mulberry32, daysSince, familyOf, tokenStatus, nameStem, selectUniverse,
     growthTilt, seasonTilt, fitPoints, fitCurve, predictLog, impliedValue, looCheck, bootstrapRanks,
     nearestPeers, cheapestChain, gasOn, chainName, farmPlan, oddsText, buildRadar,
   };

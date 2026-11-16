@@ -67,7 +67,6 @@ td { padding: 4px 8px; border-bottom: 1px solid var(--rule); }
 .board .val b { color: var(--accent); }
 .board .val, .board .name a { white-space: nowrap; }
 .board tr.ranked { cursor: pointer; }
-.board tr.ranked:hover td { background: var(--card); }
 .board tr.anchor td, .board tr.anchor .val b, .board .neg b { color: var(--grey); }
 .board tr.anchor td { background: #efe9dd; font-size: 14px; }
 .board .up { color: var(--plan); }
