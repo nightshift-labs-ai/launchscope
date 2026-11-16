@@ -33,7 +33,7 @@
 
   // -- state in the URL hash
 
-  const DEFAULTS = { tab: '', fam: '', chain: '', verdict: '', watch: '', q: '', anchors: '', sort: 'value', dir: 'desc' };
+  const DEFAULTS = { tab: '', fam: '', chain: '', verdict: '', watch: '', q: '', anchors: '1', sort: 'value', dir: 'desc' };
   const SORTS = {
     value: (r) => r.iv.value, name: (r) => r.name.toLowerCase(), tvl: (r) => r.tvl_usd, growth: (r) => (r.change_7d === null ? -1e9 : r.change_7d),
     days: (r) => (r.iv.days === null ? -1 : r.iv.days), odds: (r) => r.plan.breakEven, net: (r) => r.plan.net, perhour: (r) => r.plan.perHour,
