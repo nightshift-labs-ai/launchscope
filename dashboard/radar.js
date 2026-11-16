@@ -14,7 +14,7 @@
 
   /** Re-run the model here; check each row against board.json. */
   function deriveAll() {
-    const R = L.buildRadar(S), want = new Map(D.board.map((b) => [b[0], b]));
+    const R = L.buildRadar(S, D.exchanges), want = new Map(D.board.map((b) => [b[0], b]));
     const check = { n: R.rows.length, ranked: 0, values: 0, bands: 0, ranks: 0, plans: 0, fit: Math.abs(R.fit.a - D.fit.a) < 1e-9 && Math.abs(R.fit.b - D.fit.b) < 1e-9 };
     const near = (x, y) => Math.abs(x - y) <= 1;
     const rows = R.rows.map((x) => {
