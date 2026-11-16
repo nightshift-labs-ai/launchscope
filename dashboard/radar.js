@@ -123,7 +123,7 @@
     const rows = list.map(({ t, curve }) => `<tr class="anchor"><td class="name">${esc(t.name)}<small>${esc(t.category || 'no category')}</small></td><td class="num">${L.usd(t.tvl_usd)}</td><td class="num">${pct(t.change_7d)}</td>
       <td class="num val"><b>${L.usd(t.mcap_usd)}</b></td><td class="num">${(t.mcap_usd / t.tvl_usd).toFixed(2)}×</td><td class="num">${L.usd(curve)}</td><td class="num">${times(t.mcap_usd / curve)}</td></tr>`).join('');
     return `<div class="status"><span><b>${list.length}</b> tokens already trade: the curve's data, never ranked, by market cap</span></div>
-      <table class="board"><thead><tr><th>Token that trades</th><th class="num">TVL</th><th class="num">7d TVL</th><th class="num">Market cap</th><th class="num">× TVL</th><th class="num">Our curve</th><th class="num">Market ÷ curve</th></tr></thead><tbody>${rows}</tbody></table>`;
+      <table class="board"><thead><tr><th>Token</th><th class="num">TVL</th><th class="num">7d TVL</th><th class="num">Market cap</th><th class="num">× TVL</th><th class="num">Our curve</th><th class="num">Market ÷ curve</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
 
   function renderBoard(st) {
@@ -190,7 +190,7 @@
   /** The value as an equation: size curve x each multiplier. */
   function equationHtml(r) {
     const iv = r.iv;
-    const tile = (big, label, m) => `<div class="tile ${m === undefined ? '' : m > 1.0005 ? 'up' : m < 0.9995 ? 'down' : ''}"><b>${big}</b><span>${label}</span></div>`;
+    const tile = (big, label, m) => `<div class="tile ${m > 1.0005 ? 'up' : m < 0.9995 ? 'down' : ''}"><b>${big}</b><span>${label}</span></div>`;
     return `<div class="eq">${tile(L.usd(iv.base), `size curve at ${L.usd(r.tvl_usd)} TVL`)}<i>×</i>${tile(iv.famMult.toFixed(2), `${L.FAMILY_LABEL[iv.fam]} family`, iv.famMult)}<i>×</i>` +
       `${tile(iv.growth.toFixed(2), `7-day TVL ${pct(r.change_7d)}`, iv.growth)}<i>×</i>${tile(iv.season.toFixed(2), `${iv.days === null ? '365 assumed' : iv.days} days, no token`, iv.season)}<i>=</i>` +
       `<div class="tile res"><b>${L.usd(iv.value)}</b><span>implied value</span></div></div>`;
@@ -273,13 +273,13 @@
     const fams = Object.keys(f.fam).map((k) => `${L.FAMILY_LABEL[k]} <b>${times(10 ** f.fam[k])}</b> (${famN[k]})`).join(' · ');
     const why = {};
     u.setAside.forEach((s) => { const k = s.reason.startsWith('shares') ? 'shares a name with a protocol that records a token' : s.reason.split(/[:,]/)[0]; why[k] = (why[k] || 0) + 1; });
-    const c = { protocols: S.protocols.length, watchlist: S.watchlist.length, ranked: M.rows.length, traded: M.traded.length, set_aside: u.setAside.length, recorded: u.recorded };
+    const ranked = M.rows.length, traded = M.traded.length, aside = u.setAside.length;
     $('#view').innerHTML = `<div class="method">
-      <section class="card"><h2>The fit: ${c.traded} traded tokens, market cap against TVL</h2>${scatterSvg()}
+      <section class="card"><h2>The fit: ${traded} traded tokens, market cap against TVL</h2>${scatterSvg()}
         <p class="legend"><b class="t">●</b> traded token <b class="r">■</b> ranked protocol at its implied value <b>—</b> size curve: log10 value = ${f.a.toFixed(2)} + ${f.b.toFixed(2)} × log10(TVL / $100M)</p>
         <p>A token's market cap grows with TVL at a slope of ${f.b.toFixed(2)}: ten times the TVL is worth ${(10 ** f.b).toFixed(1)} times the value, so small protocols carry a higher multiple than large ones.</p>
         <div class="judge"><h2>Note to the judge</h2><ol>
-          <li>Working radar: <code>deriveAll</code> runs <code>buildRadar</code> on the raw snapshot in this browser; <code>selectUniverse</code> ranks ${M.watch} of ${c.watchlist} watchlist protocols plus ${c.ranked - M.watch} more; every row is checked against board.json (${M.check.ok ? 'all match' : 'see the board'}).</li>
+          <li>Working radar: <code>deriveAll</code> runs <code>buildRadar</code> on the raw snapshot in this browser; <code>selectUniverse</code> ranks ${M.watch} of ${S.watchlist.length} watchlist protocols plus ${ranked - M.watch} more; every row is checked against board.json (${M.check.ok ? 'all match' : 'see the board'}).</li>
           <li>Value model: <code>impliedValue</code> uses TVL, category family, 7-day change and days since listing, never a name; <code>fitCurve</code> fits it on traded tokens, <code>looCheck</code> tests it, <code>bootstrapRanks</code> gives bands and rank ranges.</li>
           <li>Farm plans: <code>farmPlan</code> sets chain, deposit, hold and stop from each row's data, with cost, time and break-even odds.</li>
           <li>Page: <code>filterRows</code>, <code>sortRows</code>, <code>renderDetail</code>; state lives in the URL hash.</li>
@@ -288,8 +288,8 @@
         <table class="mini"><thead><tr><th>Model</th><th class="num">Median miss</th><th class="num">Mean |log miss|</th><th class="num">Within 3×</th><th class="num">Rank corr.</th></tr></thead><tbody>${looRows}</tbody></table>
         <p>Size curve and family earn their place. Growth and seasoning do not cut the miss (${loo[3].meanLogMiss.toFixed(3)} vs ${loo[2].meanLogMiss.toFixed(3)}): traded TVL fell almost everywhere this week, and a traded token's age is not time without a token. So both are bounded priors: growth tilts value by half the 7-day change (×${L.MODEL.growthMin}–×${L.MODEL.growthMax}); seasoning discounts a new protocol up to ${L.MODEL.seasonDepth * 100}%, fading over ${L.MODEL.seasonDays} days. A ${loo[3].medianMiss.toFixed(1)}× median miss is why every row shows a band. Rank corr. tests the ranking itself (Spearman's rho inside 8 held-out folds): about ${loo[0].rankCorr.toFixed(1)} for every variant, so order comes from TVL; the extras cut the miss, not the rank error.</p>
         <h2>Category family offsets <small>mean miss, clipped at 10×, shrunk by ${L.MODEL.familyShrinkK} pseudo-tokens (traded tokens)</small></h2><p>${fams}</p>
-        <h2>From ${c.protocols} protocols to ${c.ranked} ranks</h2>
-        <p>${c.traded} trade (fit and anchors) · ${c.recorded} record a token with no market cap (not ranked) · ${c.ranked + c.set_aside} record no token: ${c.ranked} ranked, ${c.set_aside} set aside as ${Object.keys(why).map((k) => `${esc(k)} (${why[k]})`).join(', ')}.</p>
+        <h2>From ${S.protocols.length} protocols to ${ranked} ranks</h2>
+        <p>${traded} trade (fit and anchors) · ${u.recorded} record a token with no market cap (not ranked) · ${ranked + aside} record no token: ${ranked} ranked, ${aside} set aside as ${Object.keys(why).map((k) => `${esc(k)} (${why[k]})`).join(', ')}.</p>
         <h2>Farm verdicts</h2><p>Worth farming at break-even odds of ${A.farmOdds * 100}% or less (it pays if 1 hold in ${1 / A.farmOdds} sees a launch), marginal to ${A.marginalOdds * 100}%, else skip. A 7-day TVL fall past ${A.capDrop}% caps it at marginal (${M.rows.filter((r) => r.plan.capped).length} row here).</p></section></div>`;
   }
 

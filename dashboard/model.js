@@ -125,7 +125,7 @@
     return w.length >= 3 && !generic.has(w) ? w : null;
   }
 
-  /** Why a protocol that records no token is kept off the ranks, or null when it is a launch still to come. */
+  /** Why a no-token protocol is kept off the ranks; null for a launch still to come. */
   function setAsideReason(p, stems, generic) {
     if (PRODUCT_CATEGORIES.includes(p.category)) return `${p.category}: usually a product of a token that trades`;
     if (VERSIONED.test(p.name)) return 'versioned name: a release of another protocol';
@@ -136,7 +136,7 @@
     return null;
   }
 
-  /** Split the snapshot: ranked (records no token), traded (the fit and the anchors), set aside, recorded. */
+  /** Split the snapshot: ranked, traded (the fit), set aside, recorded. */
   function selectUniverse(snap) {
     const watch = new Set(snap.watchlist);
     const generic = new Set(GENERIC_WORDS);
@@ -175,18 +175,15 @@
 
   const FULL = { slope: true, families: true, priors: true };
 
-  /** One point per traded token: x = log10(TVL / $100M), y = log10(market cap), the priors taken out when asked. */
+  /** Per traded token: x = log10(TVL / $100M), y = log10(market cap) less the priors when asked. */
   function fitPoints(traded, asOf, priors) {
-    return traded.map((p) => ({
-      slug: p.slug,
-      x: log10(p.tvl_usd) - MODEL.centerLogTvl,
-      y: log10(p.mcap_usd) - (priors ? log10(growthTilt(p.change_7d) * seasonTilt(daysSince(p.listed_at, asOf))) : 0),
-      prior: priors ? log10(growthTilt(p.change_7d) * seasonTilt(daysSince(p.listed_at, asOf))) : 0,
-      fam: familyOf(p.category),
-    }));
+    return traded.map((p) => {
+      const prior = priors ? log10(growthTilt(p.change_7d) * seasonTilt(daysSince(p.listed_at, asOf))) : 0;
+      return { slug: p.slug, x: log10(p.tvl_usd) - MODEL.centerLogTvl, y: log10(p.mcap_usd) - prior, prior, fam: familyOf(p.category) };
+    });
   }
 
-  /** Least squares on logs: y = a + b*x (b fixed at 1 without a slope), then shrunk family means of the misses. */
+  /** Least squares y = a + b*x (b = 1 without a slope), then shrunk family means of the misses. */
   function fitCurve(points, opts) {
     const n = points.length;
     let mx = 0, my = 0;
