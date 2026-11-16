@@ -28,9 +28,10 @@ git add -A                                            # shoot.mjs may swap .png 
 - Dossier path order: index.html, model.js, radar.js, style.css (model read 2nd, CSS last).
 
 ## Budgets (binding)
-- Dossier source text must stay <= 65,536 bytes uncut: now 65,178 (dashboard files 64,832 bytes; dossier
-  headings add ~346). ~350 bytes of room: any addition must be paid for by a trim first. Text the judge
-  need not read in source (safety list, exchange names) can live in main.ts and travel via data.js. The gate
+- Dossier source text must stay <= 65,536 bytes uncut: now 65,392 (dashboard files 65,046 bytes; dossier
+  headings add ~346). ~144 bytes of room: any addition must be paid for by a trim first. Display-only text
+  (the safety list) can live in main.ts and travel via data.js, but model rules must stay in model.js where
+  the judge reads them (judges penalised the exchange list living in data.js). The gate
   fails on a cut (our strict rule). Trims already taken: comments, merged CSS, family table -> one line,
   word lists as split strings, VARIANTS as tuples, shared HEAD labels, legend glyphs, honesty box, the
   index.html judge comment. Remaining trim candidates: long doc comments on bootstrapRanks/nearestPeers,
@@ -127,6 +128,16 @@ git add -A                                            # shoot.mjs may swap .png 
      main.ts HONESTY -> data.js `honesty` (costs no judge bytes) 7977aa5
   3. anchors toggle .off (opacity .45) via one anchorsOff(st) rule, set on every results render (follows
      the search box too) d226283
+
+## Operator round after v4 (2026-11-16, 06:1xZ)
+- A/B: 5dbe924 beat 3a8b8d7 6/6 (margin 1), submitted as v4. KEEP anchors on, safety list, greyed toggle.
+- Judges' asks: trims first 77435fb (usd alias, merged 14 px CSS rules, CSS section markers; screenshots
+  byte-identical, -229 B); exchange names back in model.js as a visible constant with one-line reasons per
+  set-aside class, buildRadar(snap) self-contained, main.ts/page pass nothing extra, board rows identical
+  d9ed7c1; doc lines on selectUniverse, buildRadar, depositAction, daysSince, oddsText (paid by dropping
+  seven `// --` section markers) 7df41ce.
+- Optional "pre-token only" chip NOT added: the "Traded anchors" checkbox already hides the grey rows in
+  one tap, and only 144 bytes are left.
 
 ## Status
 - M1 b1bcfe7, M2 2a5f60e, M3 06c14b7, operator items 1-6 and review items above. Gate 8/8 +
