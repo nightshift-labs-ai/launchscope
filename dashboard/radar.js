@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const D = globalThis.LAUNCHSCOPE_DATA;
-  const L = globalThis.Launchscope;
+  const L = globalThis.Launchscope, usd = L.usd;
   const S = D.snapshot;
   const $ = (sel) => document.querySelector(sel);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -105,17 +105,17 @@
   const NOTE_TAG = { above: 'off list ≥ floor', named: 'chain-named', shares: 'name shared' };
   function rowHtml(r) {
     const p = r.plan, tag = r.note && NOTE_TAG[r.note.split(' ')[0]];
-    const net = p.net < 0 ? `<td class="num neg"><b>needs ${L.usd(r.iv.value * p.breakEven)}</b><small>launch value to pay</small></td>` : `<td class="num"><b>${L.usd(p.net)}</b><small>${L.usd(p.perHour)}/h · ${p.weeks} wk</small></td>`;
+    const net = p.net < 0 ? `<td class="num neg"><b>needs ${usd(r.iv.value * p.breakEven)}</b><small>launch value to pay</small></td>` : `<td class="num"><b>${usd(p.net)}</b><small>${usd(p.perHour)}/h · ${p.weeks} wk</small></td>`;
     return `<tr class="ranked" data-slug="${esc(r.slug)}"><td class="rk"><b>${r.rank}</b><small>${r.boot.rankLo}–${r.boot.rankHi}</small></td>
       <td class="name"><a href="#p/${esc(r.slug)}">${esc(r.name)}</a>${r.watch ? '<i class="tag">watchlist</i>' : ''}${tag ? `<i class="tag grey" title="${esc(r.note)}">${tag}</i>` : ''}<small>${esc(r.category || 'no category')} · ${[on, ...r.chains.filter((c) => c !== on)].filter(Boolean).slice(0, 2).map((c) => (c === on ? `<b>${esc(L.chainName(c))}</b>` : esc(L.chainName(c)))).join(', ')}${r.chains.length > 2 ? ` +${r.chains.length - 2}` : ''}</small></td>
-      <td class="val"><b>${L.usd(r.iv.value)}</b><small>P25–P75 ${L.usd(r.boot.p25)}–${L.usd(r.boot.p75)}</small></td><td>${bandBar(r)}</td>
-      <td class="num">${L.usd(r.tvl_usd)}</td><td class="num ${r.change_7d > 0 ? 'up' : ''}">${pct(r.change_7d)}</td><td class="num" title="${r.iv.days === null ? 'no listing date: 365 assumed' : ''}">${r.iv.days === null ? '365*' : r.iv.days}</td>
+      <td class="val"><b>${usd(r.iv.value)}</b><small>P25–P75 ${usd(r.boot.p25)}–${usd(r.boot.p75)}</small></td><td>${bandBar(r)}</td>
+      <td class="num">${usd(r.tvl_usd)}</td><td class="num ${r.change_7d > 0 ? 'up' : ''}">${pct(r.change_7d)}</td><td class="num" title="${r.iv.days === null ? 'no listing date: 365 assumed' : ''}">${r.iv.days === null ? '365*' : r.iv.days}</td>
       <td class="num">${odds(p.breakEven)}</td>${net}<td><i class="verdict v-${p.verdict}">${L.VERDICT_LABEL[p.verdict]}</i></td></tr>`;
   }
   function anchorHtml(t) {
     return `<tr class="anchor"><td class="rk">–</td><td class="name">${esc(t.name)}<i class="tag grey">trades</i><small>${esc(t.category || 'no category')} · reference, not ranked</small></td>
-      <td class="val"><b>${L.usd(t.mcap_usd)}</b><small>market cap</small></td><td><span class="bb"><b class="g" style="left:${at(t.mcap_usd).toFixed(1)}%"></b></span></td><td class="num">${L.usd(t.tvl_usd)}</td><td class="num">${pct(t.change_7d)}</td>
-      <td class="num" colspan="4">market ${(t.mcap_usd / t.tvl_usd).toFixed(2)}× TVL · our curve would say ${L.usd(L.impliedValue(t, M.fit, S.as_of).value)}</td></tr>`;
+      <td class="val"><b>${usd(t.mcap_usd)}</b><small>market cap</small></td><td><span class="bb"><b class="g" style="left:${at(t.mcap_usd).toFixed(1)}%"></b></span></td><td class="num">${usd(t.tvl_usd)}</td><td class="num">${pct(t.change_7d)}</td>
+      <td class="num" colspan="4">market ${(t.mcap_usd / t.tvl_usd).toFixed(2)}× TVL · our curve would say ${usd(L.impliedValue(t, M.fit, S.as_of).value)}</td></tr>`;
   }
 
   /** Every token that trades: market cap beside our curve's price. */
@@ -123,8 +123,8 @@
     const q = st.q.trim().toLowerCase();
     const list = M.traded.filter((t) => (!st.fam || L.familyOf(t.category) === st.fam) && (!st.chain || t.chains.includes(st.chain)) && (!q || t.name.toLowerCase().includes(q)))
       .map((t) => ({ t, curve: L.impliedValue(t, M.fit, S.as_of).value })).sort((a, b) => b.t.mcap_usd - a.t.mcap_usd || (a.t.slug < b.t.slug ? -1 : 1));
-    const rows = list.map(({ t, curve }) => `<tr class="anchor"><td class="name">${esc(t.name)}<small>${esc(t.category || 'no category')}</small></td><td class="num">${L.usd(t.tvl_usd)}</td><td class="num">${pct(t.change_7d)}</td>
-      <td class="num val"><b>${L.usd(t.mcap_usd)}</b></td><td class="num">${(t.mcap_usd / t.tvl_usd).toFixed(2)}×</td><td class="num">${L.usd(curve)}</td><td class="num">${times(t.mcap_usd / curve)}</td></tr>`).join('');
+    const rows = list.map(({ t, curve }) => `<tr class="anchor"><td class="name">${esc(t.name)}<small>${esc(t.category || 'no category')}</small></td><td class="num">${usd(t.tvl_usd)}</td><td class="num">${pct(t.change_7d)}</td>
+      <td class="num val"><b>${usd(t.mcap_usd)}</b></td><td class="num">${(t.mcap_usd / t.tvl_usd).toFixed(2)}×</td><td class="num">${usd(curve)}</td><td class="num">${times(t.mcap_usd / curve)}</td></tr>`).join('');
     return `<div class="status"><span><b>${list.length}</b> tokens already trade: the curve's data, never ranked, by market cap</span></div>
       <table class="board"><thead><tr><th>Token</th><th class="num">TVL</th><th class="num">7d TVL</th><th class="num">Market cap</th><th class="num">× TVL</th><th class="num">Our curve</th><th class="num">Market ÷ curve</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
@@ -196,9 +196,9 @@
   function equationHtml(r) {
     const iv = r.iv;
     const tile = (big, label, m) => `<div class="tile ${m > 1.0005 ? 'up' : m < 0.9995 ? 'down' : ''}"><b>${big}</b><span>${label}</span></div>`;
-    return `<div class="eq">${tile(L.usd(iv.base), `size curve at ${L.usd(r.tvl_usd)} TVL`)}<i>×</i>${tile(iv.famMult.toFixed(2), `${L.FAMILY_LABEL[iv.fam]} family`, iv.famMult)}<i>×</i>` +
+    return `<div class="eq">${tile(usd(iv.base), `size curve at ${usd(r.tvl_usd)} TVL`)}<i>×</i>${tile(iv.famMult.toFixed(2), `${L.FAMILY_LABEL[iv.fam]} family`, iv.famMult)}<i>×</i>` +
       `${tile(iv.growth.toFixed(2), `7-day TVL ${pct(r.change_7d)}`, iv.growth)}<i>×</i>${tile(iv.season.toFixed(2), `${iv.days === null ? '365* assumed' : iv.days} days tracked`, iv.season)}<i>=</i>` +
-      `<div class="tile res"><b>${L.usd(iv.value)}</b><span>implied value</span></div></div>`;
+      `<div class="tile res"><b>${usd(iv.value)}</b><span>implied value</span></div></div>`;
   }
 
   /** Band on a log axis; numbered peers at their multiples. */
@@ -206,7 +206,7 @@
     const v = [r.boot.p25, r.boot.p75, r.iv.value, ...r.peers.map((t) => t.implied)].map(Math.log10);
     const a = Math.min(...v) - 0.2, x = (u) => (100 * (Math.log10(u) - a)) / (Math.max(...v) + 0.2 - a);
     return `<div class="bd"><i style="left:${x(r.boot.p25).toFixed(1)}%;width:${(x(r.boot.p75) - x(r.boot.p25)).toFixed(1)}%"></i>${r.peers.map((t, i) => `<em style="left:${x(t.implied).toFixed(1)}%">${i + 1}</em>`).join('')}` +
-      `<b style="left:${x(r.iv.value).toFixed(1)}%"></b><span style="left:${x(r.boot.p25).toFixed(1)}%">P25 ${L.usd(r.boot.p25)}</span><span style="left:${x(r.boot.p75).toFixed(1)}%">P75 ${L.usd(r.boot.p75)}</span></div>`;
+      `<b style="left:${x(r.iv.value).toFixed(1)}%"></b><span style="left:${x(r.boot.p25).toFixed(1)}%">P25 ${usd(r.boot.p25)}</span><span style="left:${x(r.boot.p75).toFixed(1)}%">P75 ${usd(r.boot.p75)}</span></div>`;
   }
 
   /** The plan's calendar: numbered steps, weeks, the stop line. */
@@ -220,7 +220,7 @@
       return `<g class="mk"><circle cx="${lastX}" cy="22" r="10"/><text x="${lastX}" y="26" text-anchor="middle">${i + 1}</text></g>`;
     }).join('');
     return `<svg class="timeline" viewBox="0 0 740 94" role="img" aria-label="Plan timeline"><line class="axis" x1="24" x2="684" y1="44" y2="44"/>${ticks}${marks}
-      <text class="stopt" x="24" y="82">${plan.steps.findIndex((s) => s.kind === 'stop') + 1} · any day: stop if TVL closes under ${L.usd(plan.stopTvl)}</text><line class="stop" x1="24" x2="684" y1="88" y2="88"/></svg>`;
+      <text class="stopt" x="24" y="82">${plan.steps.findIndex((s) => s.kind === 'stop') + 1} · any day: stop if TVL closes under ${usd(plan.stopTvl)}</text><line class="stop" x1="24" x2="684" y1="88" y2="88"/></svg>`;
   }
 
   /** One protocol: value, build-up, band, peers and costed plan. */
@@ -229,26 +229,26 @@
     if (!r) { location.hash = ''; return; }
     const p = r.plan, A = L.ASSUME;
     const steps = p.steps.map((s, i) => `<tr class="${s.kind === 'stop' ? 'cond' : ''}"><td class="n">${i + 1}</td><td class="when">${s.day === null ? 'any day' : s.every ? `weekly ×${p.weeks}` : `day ${s.day}`}</td>
-      <td>${esc(s.text)}</td><td class="num">${L.usd(s.cost)}</td><td class="num">${s.minutes} min</td></tr>`).join('');
-    const peers = r.peers.map((t, i) => `<tr><td class="n">${i + 1}</td><td>${esc(t.name)}</td><td class="num">${L.usd(t.tvl_usd)}</td><td class="num">${L.usd(t.mcap_usd)}</td><td class="num">${t.multiple.toFixed(2)}×</td><td class="num">${L.usd(t.implied)}</td></tr>`).join('');
+      <td>${esc(s.text)}</td><td class="num">${usd(s.cost)}</td><td class="num">${s.minutes} min</td></tr>`).join('');
+    const peers = r.peers.map((t, i) => `<tr><td class="n">${i + 1}</td><td>${esc(t.name)}</td><td class="num">${usd(t.tvl_usd)}</td><td class="num">${usd(t.mcap_usd)}</td><td class="num">${t.multiple.toFixed(2)}×</td><td class="num">${usd(t.implied)}</td></tr>`).join('');
     $('#view').innerHTML = `<header class="dhead"><a class="crumb" href="${esc(back)}">← Board</a><h1>${esc(r.name)}</h1><i class="tag">records no token</i>${r.watch ? '<i class="tag">watchlist</i>' : ''}<i class="tag grey">${esc(r.category || 'no category')}</i><i class="tag grey">${esc(r.chains.slice(0, 3).join(' · '))}${r.chains.length > 3 ? ` +${r.chains.length - 3}` : ''}</i></header>
       ${r.note ? `<p class="note">Note: ${esc(r.note)}.</p>` : ''}
       <div class="detail">
         <section class="card">
-          <div class="facts"><div class="big"><span>Implied value, our model's claim</span><b>${L.usd(r.iv.value)}</b></div><div><span>Rank · P10–P90 of refits</span><b>${r.rank} of ${M.rows.length} · ${r.boot.rankLo}–${r.boot.rankHi}</b></div><div><span>P25–P75 band</span><b>${L.usd(r.boot.p25)}–${L.usd(r.boot.p75)}</b></div></div>
+          <div class="facts"><div class="big"><span>Implied value, our model's claim</span><b>${usd(r.iv.value)}</b></div><div><span>Rank · P10–P90 of refits</span><b>${r.rank} of ${M.rows.length} · ${r.boot.rankLo}–${r.boot.rankHi}</b></div><div><span>P25–P75 band</span><b>${usd(r.boot.p25)}–${usd(r.boot.p75)}</b></div></div>
           <h2>How the value is built</h2>${equationHtml(r)}
           <h2>Band and nearest traded peers <small>same family, within 10× of the curve</small></h2>${bandHtml(r)}
           <table class="mini"><thead><tr><th>#</th><th>Token that trades</th><th class="num">TVL</th><th class="num">Mcap</th><th class="num">× TVL</th><th class="num">Applied here</th></tr></thead><tbody>${peers}</tbody></table>
           <h2>The farm arithmetic</h2>
-          <p class="math">Slice if a token launches = ${A.airdropShare * 100}% airdrop share × ${L.usd(r.iv.value)} × ${L.usd(p.deposit)} / ${L.usd(r.tvl_usd)} TVL = <b>${L.usd(p.slice)}</b><br>
-          Break-even = (${L.usd(p.costs)} fees + ${L.usd(p.capitalCost)} income forgone at ${(p.carry * 100).toFixed(1)}% a year for ${p.weeks} weeks) / ${L.usd(p.slice)} = <b>${odds(p.breakEven)}</b>: ${esc(L.oddsText(p, r.iv.value))}</p>
-          <p class="assume">Estimates: gas ${L.usd(p.gas)} a transaction on ${esc(p.chain)}, ${L.usd(A.bridgeFee)} a bridge leg, T-bills ${A.tbillRate * 100}% less the deposit's yield. Deposit grows with TVL within ${L.usd(A.depositMin)}–${L.usd(A.depositMax)}; younger protocols are held longer; stop = twice the 7-day swing.</p>
+          <p class="math">Slice if a token launches = ${A.airdropShare * 100}% airdrop share × ${usd(r.iv.value)} × ${usd(p.deposit)} / ${usd(r.tvl_usd)} TVL = <b>${usd(p.slice)}</b><br>
+          Break-even = (${usd(p.costs)} fees + ${usd(p.capitalCost)} income forgone at ${(p.carry * 100).toFixed(1)}% a year for ${p.weeks} weeks) / ${usd(p.slice)} = <b>${odds(p.breakEven)}</b>: ${esc(L.oddsText(p, r.iv.value))}</p>
+          <p class="assume">Estimates: gas ${usd(p.gas)} a transaction on ${esc(p.chain)}, ${usd(A.bridgeFee)} a bridge leg, T-bills ${A.tbillRate * 100}% less the deposit's yield. Deposit grows with TVL within ${usd(A.depositMin)}–${usd(A.depositMax)}; younger protocols are held longer; stop = twice the 7-day swing.</p>
         </section>
         <section class="card plan">
-          <h2>Farm plan <small>${esc(p.chain)} · ${L.usd(p.deposit)} · ${p.weeks} weeks</small><i class="verdict v-${p.verdict}">${L.VERDICT_LABEL[p.verdict]}</i></h2>${p.capped ? `<p class="note">Capped at Marginal: TVL ${pct(r.change_7d)} in 7 days, past the ${A.capDrop}% limit; the odds alone say worth farming.</p>` : ''}
+          <h2>Farm plan <small>${esc(p.chain)} · ${usd(p.deposit)} · ${p.weeks} weeks</small><i class="verdict v-${p.verdict}">${L.VERDICT_LABEL[p.verdict]}</i></h2>${p.capped ? `<p class="note">Capped at Marginal: TVL ${pct(r.change_7d)} in 7 days, past the ${A.capDrop}% limit; the odds alone say worth farming.</p>` : ''}
           ${timelineSvg(p)}
           <table class="steps"><thead><tr><th>#</th><th>When</th><th>Step</th><th class="num">Cost</th><th class="num">Time</th></tr></thead><tbody>${steps}</tbody></table>
-          <div class="totals"><div><span>Fees and gas</span><b>${L.usd(p.costs)}</b></div><div><span>Income forgone</span><b>${L.usd(p.capitalCost)}</b></div><div><span>Your time</span><b>${Math.round(p.minutes)} min</b></div><div><span>Slice if launch</span><b>${L.usd(p.slice)}</b></div><div><span>Break-even odds</span><b>${odds(p.breakEven)}</b></div><div><span>Net per hour</span><b>${L.usd(p.perHour)}</b></div></div>
+          <div class="totals"><div><span>Fees and gas</span><b>${usd(p.costs)}</b></div><div><span>Income forgone</span><b>${usd(p.capitalCost)}</b></div><div><span>Your time</span><b>${Math.round(p.minutes)} min</b></div><div><span>Slice if launch</span><b>${usd(p.slice)}</b></div><div><span>Break-even odds</span><b>${odds(p.breakEven)}</b></div><div><span>Net per hour</span><b>${usd(p.perHour)}</b></div></div>
           <ul class="honesty">${D.honesty.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>
         </section>
       </div>`;
