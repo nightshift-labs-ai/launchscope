@@ -406,7 +406,10 @@
       rank: i + 1, p: s.r.p, watch: s.r.watch, note: s.r.note, iv: s.iv, band: boot[i],
       peers: nearestPeers(s.r.p, u.traded, 3, fit, snap.as_of), plan: farmPlan(s.r.p, s.iv.value, snap.as_of),
     }));
-    return { universe: u, fit, rows, loo: looCheck(u.traded, snap.as_of) };
+    // Ranks the two priors move: each row's rank with them against without.
+    const plain = scored.map((s, i) => [s.iv.value / (s.iv.growth * s.iv.season), i]).sort((x, y) => y[0] - x[0] || x[1] - y[1]);
+    const moved = (n) => plain.filter(([, i], k) => Math.abs(k - i) >= n).length;
+    return { universe: u, fit, rows, loo: looCheck(u.traded, snap.as_of), moves: { five: moved(5), ten: moved(10) } };
   }
 
   const api = {

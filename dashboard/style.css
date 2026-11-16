@@ -100,8 +100,7 @@ td { padding: 4px 8px; border-bottom: 1px solid var(--rule); }
 .tile b { display: block; font-size: 19px; }
 .tile.up b, .math b, .mini .n, .steps .n { color: var(--plan); font-weight: 700; }
 .tile.down b, .steps tr.cond td { color: var(--red); }
-.tile.res { background: var(--accent); border-color: var(--accent); }
-.tile.res b, .tile.res span { color: #fff; }
+.tile.res, .tile.res * { background: var(--accent); border-color: var(--accent); color: #fff; }
 .bd { position: relative; height: 40px; margin: 24px 16px 8px; border-top: 2px solid var(--rule); }
 .bd i, .bd b, .bd em, .bd span { position: absolute; transform: translateX(-50%); }
 .bd i { top: -8px; height: 14px; border-radius: 7px; background: #e3b494; transform: none; }
