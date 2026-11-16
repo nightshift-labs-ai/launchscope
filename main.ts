@@ -109,13 +109,16 @@ function summaryText(plan: any, value: number): string {
     `(T-bills less the deposit's own yield) on ${L.usd(plan.deposit)} for ${plan.weeks} weeks, ${plan.minutes} min of your time. If a token launches at our ` +
     `model's ${L.usd(value)}, the slice is ${L.usd(plan.slice)}: ${odds}${L.oddsText(plan, value)}. Verdict: ${L.VERDICT_LABEL[plan.verdict]}.`;
 }
+/** The ground rules every plan carries, as its own farm_steps string. */
+const GROUND_RULES = `Ground rules: one wallet, your own funds, never split across wallets; every cost and time here is our round estimate; ` +
+  `the slice assumes ${L.ASSUME.airdropShare * 100}% of a launched token goes to depositors pro rata, and a launch may pay depositors nothing.`;
 
 const board = radar.rows.map((row: any) => ({
   rank: row.rank,
   slug: row.p.slug,
   name: row.p.name,
   implied_value_usd: row.iv.value,
-  farm_steps: [...row.plan.steps.map((s: any) => stepText(s, row.plan.weeks)), summaryText(row.plan, row.iv.value)],
+  farm_steps: [...row.plan.steps.map((s: any) => stepText(s, row.plan.weeks)), summaryText(row.plan, row.iv.value), GROUND_RULES],
   token_status: 'records no token',
   on_watchlist: row.watch,
   category: row.p.category,
