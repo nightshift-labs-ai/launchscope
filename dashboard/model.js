@@ -150,7 +150,6 @@
       else if (status === 'recorded') recorded++;
       else {
         const on = watch.has(p.slug), why = setAsideReason(p, stems, generic);
-        // Above the floor yet off the watchlist means DefiLlama files it under a parent: ranked, noted.
         const parent = !why && !on && p.tvl_usd >= snap.floor_usd ? `above the ${usd(snap.floor_usd)} floor yet off the house watchlist; the house rule leaves out protocols DefiLlama files under a parent, which this snapshot does not name` : null;
         if (why === null || on) ranked.push({ p, watch: on, note: why || parent });
         else setAside.push({ slug: p.slug, name: p.name, tvl_usd: p.tvl_usd, reason: why });
@@ -290,7 +289,7 @@
   function gasOn(chain) {
     return Object.prototype.hasOwnProperty.call(ASSUME.gas, chain) ? ASSUME.gas[chain] : ASSUME.gasDefault;
   }
-  /** DefiLlama lists chains by TVL: the cheapest of the top three, where the deposits are; the first wins a tie. */
+  /** Chains come by TVL: the cheapest of the top three; ties go to the first. */
   function cheapestChain(chains) {
     let best = chains[0] || 'Ethereum';
     for (const c of chains.slice(0, 3)) if (gasOn(c) < gasOn(best)) best = c;
@@ -310,28 +309,28 @@
     if (familyOf(p.category) === 'stake') return NATIVE_COIN[chain] || `${chainName(chain)}'s native coin`;
     return NATIVE_COIN[chain] || 'USDC';
   }
-  const STABLES = ['Dual-Token Stablecoin', 'Stablecoin Wrapper', 'Algo-Stables', 'Stablecoin Issuer', 'Reserve Currency'];
+  const STABLES = 'Dual-Token Stablecoin|Stablecoin Wrapper|Algo-Stables|Stablecoin Issuer|Reserve Currency'.split('|');
 
-  /** The one action a depositor takes, by category: its text, any cost beyond gas, its minutes and the wait to get out. */
+  /** The deposit action by category: text, minutes, exit wait, extra cost. */
   function depositAction(p, deposit, chain, asset, exitDay) {
     const c = p.category || '', fam = familyOf(c), d = `${usd(deposit)} of ${asset}`, n = p.name, on = `on ${chainName(chain)}`, swap = deposit * 0.0005;
     const act = (text, minutes, wait, extra = 0, flag = {}) => Object.assign({ text, minutes, wait, extra }, flag);
     if (c === 'Dexs') return asset === 'USDC'
-      ? act(`Add ${d} to ${n}'s deepest stablecoin pool ${on} (USDC with another dollar stablecoin); if it takes no outside liquidity, skip it.`, 15, 'no lock', swap)
+      ? act(`Add ${d} to ${n}'s deepest stablecoin pool ${on} (USDC with another dollar stablecoin); if it takes no outside liquidity, skip it.`, 15, 'usually no lock; check the app', swap)
       : act(`Add ${d} to ${n}'s deepest ${asset} pool ${on}; the position keeps ${asset}'s price risk.`, 15, 'pool exits can take a day', swap);
     if (c === 'Derivatives' || c === 'Options') return act(`Deposit ${d} into ${n}'s liquidity vault ${on}; it takes the other side of traders and can lose in sharp moves.`, 15, 'vault lockups often run 1 to 4 days');
-    if (c === 'Prediction Market' || c === 'OTC Marketplace') return act(`Fund ${n} ${on} with ${d} and keep it as resting liquidity, not open bets.`, 15, 'no lock');
+    if (c === 'Prediction Market' || c === 'OTC Marketplace') return act(`Fund ${n} ${on} with ${d}; post only resting quotes, as a filled quote is a position with the market's risk.`, 15, 'usually no lock; check the app', 0, { terms: true });
     if (c === 'Chain') return act(`On ${n}, put ${d} into the largest app DefiLlama lists for the chain; if none, holding the bridged ${asset} is the position.`, 25, 'the bridge back can take 7 days');
     if (c === 'Payments') return act(`Open a payment channel of ${d} on ${n} with a well-connected node and keep it open.`, 30, 'a channel close settles on-chain in about an hour');
     if (c === 'Insurance') return act(`Provide ${d} of cover capital to ${n}'s pool ${on}; a paid claim can draw it down.`, 20, 'cover pools often hold capital 7 to 30 days');
-    if (c === 'CDP' || c === 'CDP Manager') return act(`Swap ${d} for ${n}'s own stablecoin ${on} and deposit it in its stability or savings pool; open no vault, mint nothing.`, 15, 'savings pools usually exit at once', swap);
+    if (c === 'CDP') return act(`Swap ${d} for ${n}'s stablecoin ${on} (it can trade below $1) into its savings pool; open no vault, mint nothing.`, 15, 'savings pools usually exit at once', swap);
     if (c === 'Collateral Markets') return act(`Deposit ${d} into ${n}'s largest vault that takes it ${on}; read the vault's withdrawal epoch first.`, 20, 'exits wait for the vault epoch, often 7 days');
     if (c === 'Governance Incentives') return act(`Deposit ${d} into ${n}'s earn vault ${on}; take a vote-escrow lock only if it ends before day ${exitDay}.`, 15, 'locks must end before the exit');
-    if (fam === 'lend') return act(`Supply ${d} to ${n}'s main market ${on} and do not borrow against it.`, 10, 'waits only if the market is fully borrowed');
+    if (fam === 'lend' && c !== 'CDP Manager') return act(`Supply ${d} to ${n}'s main market ${on} and do not borrow against it.`, 10, 'waits only if the market is fully borrowed');
     if (STABLES.includes(c)) return act(`Mint ${n}'s stable token with ${d} (the stable side, never its volatile token) and hold it in its savings vault ${on}.`, 15, 'redeeming to USDC usually settles at once', swap);
-    if (fam === 'rwa') return act(`Put ${d} into ${n}'s main yield fund ${on}, after checking its minimum; if it only sells single property or other tokens, skip it.`, 20, 'redemptions settle in 1 to 5 business days', 0, { kyc: true });
-    if (fam === 'stake') return act(`Stake ${d} through ${n}, using only coin you already hold; the stake keeps that coin's price risk.`, 15, 'unbonding follows the chain, often 7 to 21 days', 0, { unbond: true });
-    if (fam === 'vault') return act(`Deposit ${d} into ${n}'s largest ${asset} vault ${on}; read its withdrawal delay before you sign.`, 15, 'vault queues can hold a withdrawal 1 to 7 days');
+    if (fam === 'rwa') return act(`Put ${d} into ${n}'s main yield fund ${on}, after checking its minimum; if it only sells single property or other tokens, skip it.`, 20, 'redemptions often settle in 1 to 5 business days', 0, { kyc: true });
+    if (fam === 'stake') return act(`Stake the ${d} through ${n}.`, 15, 'unbonding follows the chain, often 7 to 21 days', 0, { unbond: true });
+    if (fam === 'vault' || c === 'CDP Manager') return act(`Deposit ${d} into ${n}'s largest ${asset} vault ${on}; read its withdrawal delay before you sign.`, 15, 'vault queues can hold a withdrawal 1 to 7 days');
     return act(`Deposit ${d} into ${n} ${on} through its own app.`, 15, 'check the app for a lock');
   }
 
@@ -355,11 +354,12 @@
     const steps = [
       { day: 0, kind: 'verify', text: `Open ${p.name} from its DefiLlama listing, bookmark that domain, and read its docs on rewards and withdrawals.`, cost: 0, minutes: 20 },
       act.kyc && { day: 0, kind: 'kyc', text: `Pass ${p.name}'s KYC if it asks for one; allow 1 to 3 days before you deposit.`, cost: 0, minutes: 30 },
-      { day: d0, kind: 'fund', text: bridge ? `Move ${usd(deposit)} of ${asset} and about ${usd(10 * gas)} of gas to your one wallet on ${cn}${p.chains.length > 1 ? `, the cheapest of its top ${Math.min(3, p.chains.length)} chains by TVL` : ''}.` : `Have ${usd(deposit)} of ${asset} you already hold, plus about ${usd(10 * gas)} of gas, in your one wallet on ${cn}.`, cost: bridge + gas, minutes: 15 },
+      act.terms && { day: 0, kind: 'terms', text: `Confirm ${p.name}'s terms allow users in your country; if not, stop here.`, cost: 0, minutes: 10 },
+      { day: d0, kind: 'fund', text: bridge ? `Move ${usd(deposit)} of ${asset} and about ${usd(10 * gas)} of gas to your one wallet on ${cn}${p.chains.length > 1 ? `, the cheapest of its top ${Math.min(3, p.chains.length)} chains by TVL` : ''}.` : `Use ${usd(deposit)} of ${asset} you already hold (do not buy it for this), plus ${usd(10 * gas)} of gas, in your one wallet on ${cn}; it keeps ${asset}'s price risk.`, cost: bridge + gas, minutes: 15 },
       { day: d0, kind: 'deposit', text: act.text, cost: 2 * gas + act.extra, minutes: act.minutes },
       { day: d0 + 1, kind: 'record', text: `Check the ${usd(deposit)} position shows in ${p.name}'s app on ${cn}; log the transaction hash, date and amount.`, cost: 0, minutes: 5 },
       { day: 7, kind: 'watch', text: `Every week, check its TVL on DefiLlama against the stop level ${usd(stopTvl)} (${drop}% under today's ${usd(p.tvl_usd)}).`, cost: 0, minutes: 5 * weeks, every: 7 },
-      { day: Math.round(exitDay / 2), kind: 'recheck', text: `Midway, re-read the rewards page; if it names a qualifying action (a claim, a vote, or a lock ending before day ${exitDay}), do it once.`, cost: gas, minutes: 10 },
+      { day: Math.round(exitDay / 2), kind: 'recheck', text: `Midway, re-read the rewards page; do any qualifying action it names once (a lock only if it ends by day ${exitDay}).`, cost: gas, minutes: 10 },
       { day: null, kind: 'stop', text: `Stop rule: if TVL closes below ${usd(stopTvl)} or withdrawals pause, withdraw at once and end the plan.`, cost: gas + bridge, minutes: 15 },
       act.unbond && { day: exitDay - 14, kind: 'unbond', text: `Start unbonding on day ${exitDay - 14} so the coin is free by day ${exitDay}.`, cost: gas, minutes: 10 },
       { day: exitDay, kind: 'exit', text: `After ${weeks} weeks, withdraw the ${usd(deposit)} (${act.wait})${bridge ? ` and move it back off ${cn}` : ''}.`, cost: gas + bridge, minutes: 15 },
@@ -391,7 +391,7 @@
 
   // -- the whole board
 
-  /** Everything the board shows, from the snapshot alone: main.ts writes it, the page re-derives it. */
+  /** The whole board from the snapshot alone. */
   function buildRadar(snap) {
     const u = selectUniverse(snap);
     const fit = fitCurve(fitPoints(u.traded, snap.as_of, true), FULL);

@@ -204,7 +204,7 @@
       `<b style="left:${x(r.iv.value).toFixed(1)}%"></b><span style="left:${x(r.boot.p25).toFixed(1)}%">P25 ${L.usd(r.boot.p25)}</span><span style="left:${x(r.boot.p75).toFixed(1)}%">P75 ${L.usd(r.boot.p75)}</span></div>`;
   }
 
-  /** The plan's calendar, day 0 to the exit week: numbered steps, weekly ticks and the stop line. */
+  /** The plan's calendar: numbered steps, weeks, the stop line. */
   function timelineSvg(plan) {
     const end = plan.weeks * 7, sx = (d) => 24 + (d / end) * 660;
     let ticks = '', lastX = -99;
@@ -237,7 +237,7 @@
           <h2>The farm arithmetic</h2>
           <p class="math">Slice if a token launches = ${A.airdropShare * 100}% airdrop share × ${L.usd(r.iv.value)} × ${L.usd(p.deposit)} / ${L.usd(r.tvl_usd)} TVL = <b>${L.usd(p.slice)}</b><br>
           Break-even = (${L.usd(p.costs)} fees + ${L.usd(p.capitalCost)} income forgone at ${(p.carry * 100).toFixed(1)}% a year for ${p.weeks} weeks) / ${L.usd(p.slice)} = <b>${odds(p.breakEven)}</b>: ${esc(L.oddsText(p, r.iv.value))}</p>
-          <p class="assume">Our estimates: gas ${L.usd(p.gas)} a transaction on ${esc(p.chain)}, ${L.usd(A.bridgeFee)} a bridge leg, T-bills ${A.tbillRate * 100}% less the deposit's assumed yield. Deposit grows with TVL (${L.usd(A.depositMin)}–${L.usd(A.depositMax)}); younger protocols are held longer; stop = twice the 7-day swing.</p>
+          <p class="assume">Estimates: gas ${L.usd(p.gas)} a transaction, ${L.usd(A.bridgeFee)} a bridge leg, T-bills ${A.tbillRate * 100}% less the deposit's yield. Deposit grows with TVL; younger protocols are held longer; stop = twice the 7-day swing.</p>
         </section>
         <section class="card plan">
           <h2>Farm plan <small>${esc(p.chain)} · ${L.usd(p.deposit)} · ${p.weeks} weeks</small><i class="verdict v-${p.verdict}">${L.VERDICT_LABEL[p.verdict]}</i></h2>${p.capped ? `<p class="note">Capped at Marginal: TVL ${pct(r.change_7d)} in 7 days, past the ${A.capDrop}% limit; the odds alone say worth farming.</p>` : ''}
