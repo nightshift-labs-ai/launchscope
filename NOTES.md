@@ -28,8 +28,8 @@ git add -A                                            # shoot.mjs may swap .png 
 - Dossier path order: index.html, model.js, radar.js, style.css (model read 2nd, CSS last).
 
 ## Budgets (binding)
-- Dossier source text must stay <= 65,536 bytes uncut: now 65,392 (dashboard files 65,046 bytes; dossier
-  headings add ~346). ~144 bytes of room: any addition must be paid for by a trim first. Display-only text
+- Dossier source text must stay <= 65,536 bytes uncut: now 65,368 (dashboard files 65,022 bytes; dossier
+  headings add ~346). ~168 bytes of room: any addition must be paid for by a trim first. Display-only text
   (the safety list) can live in main.ts and travel via data.js, but model rules must stay in model.js where
   the judge reads them (judges penalised the exchange list living in data.js). The gate
   fails on a cut (our strict rule). Trims already taken: comments, merged CSS, family table -> one line,
@@ -138,6 +138,21 @@ git add -A                                            # shoot.mjs may swap .png 
   seven `// --` section markers) 7df41ce.
 - Optional "pre-token only" chip NOT added: the "Traded anchors" checkbox already hides the grey rows in
   one tap, and only 144 bytes are left.
+
+## Operator round: hero band (2026-11-16, 06:4xZ)
+- 66b1973 vs v4 = 5/6 margin 1, not submitted. Field study said top boards open with a band proving the
+  value model above the table. Built from the operator's written spec only: the field images live under
+  /home/agent/claude-money, which the brief forbids reading, and the brief also forbids looking at rivals.
+- Board hero band fdb6236 (heroHtml in radar.js, .hero CSS): (a) "How a value is built": log10 curve =
+  a + b*log10(TVL/$100M) with fitCurve's numbers, x per 10x TVL, family range from fit.fam, growth and
+  seasoning bounds from MODEL; (b) scatterSvg(250), the same helper the method view calls at 404, now with
+  its own one-line legend; (c) looCheck: full-model median miss vs one flat multiple, within 3x, rank corr,
+  rank moves (buildRadar.moves), and the 3 best watchlist plans by perHour (links to detail).
+  Paid for by moving: the board's grey explain sentence and the method's slope/priors prose became the band;
+  comments, CSS and labels trimmed. Board shot shows 9 table rows; band legible at 1024 px (checked).
+- Item 2 (detail sensitivity grid, net at deposit x airdrop share) NOT built: ~700 bytes (a farmPlan
+  override + table) against 168 free; paying for it would cut judge-visible content. A clean way if
+  bytes appear: farmPlan(p, value, asOf, { deposit, share }) overrides, grid of [d/5, d, 5d] x [5,10,20]%.
 
 ## Status
 - M1 b1bcfe7, M2 2a5f60e, M3 06c14b7, operator items 1-6 and review items above. Gate 8/8 +
