@@ -1,15 +1,10 @@
-/* Launchscope model: the one file that turns the DefiLlama snapshot into the board.
- *
- * main.ts loads this exact file (createRequire) to write board.json, and the page loads it again and
- * re-runs buildRadar on the raw snapshot in data.js, then checks every row against board.json. No value
- * is set by a protocol's name: each follows from its TVL, its category, its 7-day TVL change and the days
- * since DefiLlama began tracking it while it still records no token. Names enter only the universe rule.
+/* Launchscope model: the one file that turns the DefiLlama snapshot into the board. main.ts runs it to
+ * write board.json; the page runs buildRadar again on the raw snapshot and checks every row. No value is
+ * set by a name: TVL, category, 7-day TVL change and days tracked with no token decide it.
  *
  *   value = 10^(a + b * log10(TVL / $100M) + family offset) * growthTilt * seasonTilt
- *
- *   a, b     least squares on logs over the snapshot's traded tokens (market cap against TVL)
- *   family   each category family's mean miss on the traded set, shrunk toward 0 by K pseudo-tokens
- *   tilts    bounded priors for 7-day growth and seasoning; looCheck shows what each one adds
+ *   a, b: least squares on logs over the snapshot's traded tokens (market cap against TVL);
+ *   family: each category family's mean miss, shrunk toward 0; tilts: bounded priors, tested by looCheck.
  */
 (function (root) {
   'use strict';
@@ -57,7 +52,7 @@
     "Cost arithmetic and our model's claim, not investment advice.",
   ];
 
-  // ------------------------------------------------------------ helpers
+  // -- helpers
 
   const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
@@ -100,7 +95,7 @@
     return Math.max(0, Math.round((Date.parse(`${asOf}T00:00:00Z`) - Date.parse(`${listedAt}T00:00:00Z`)) / 86400000));
   }
 
-  // ------------------------------------------------------------ families and the universe
+  // -- families and the universe
 
   // DefiLlama's categories in eight families: one category alone holds too few traded tokens to fit.
   const FAMILY_OF = {};
@@ -168,7 +163,7 @@
       else if (status === 'recorded') recorded++;
       else {
         const on = watch.has(p.slug), why = setAsideReason(p, stems, generic);
-        // Above the floor yet off the watchlist: by the house's rule DefiLlama files it under a parent. Ranked, noted.
+        // Above the floor yet off the watchlist means DefiLlama files it under a parent: ranked, noted.
         const parent = !why && !on && p.tvl_usd >= snap.floor_usd ? 'off the house watchlist though above its floor: DefiLlama files it under a parent, which records no token by name' : null;
         if (why === null || on) ranked.push({ p, watch: on, note: why || parent });
         else setAside.push({ slug: p.slug, name: p.name, tvl_usd: p.tvl_usd, reason: why });
@@ -177,7 +172,7 @@
     return { ranked, traded, setAside, recorded };
   }
 
-  // ------------------------------------------------------------ the value model
+  // -- the value model
 
   function growthTilt(change7d) {
     const g = change7d === null ? 0 : change7d / 100;
@@ -239,7 +234,7 @@
     return { value: Math.max(1, Math.round(base * famMult * growth * season)), base, famMult, growth, season, days, fam };
   }
 
-  // ------------------------------------------------------------ honesty: leave-one-out and the bootstrap
+  // -- honesty: out-of-sample checks and the bootstrap
 
   const VARIANTS = [
     { key: 'multiple', label: 'TVL x one multiple', slope: false, families: false, priors: false },
@@ -262,11 +257,7 @@
     });
   }
 
-  /**
-   * 200 refits on traded tokens drawn with replacement (seeded). Per row: the P25-P75 band of value
-   * (each refit times one resampled miss of the full fit, so it counts the protocol's own miss too)
-   * and the P10-P90 range of its rank across the refits alone (how stable the curve's order is).
-   */
+  /** 200 seeded refits on resampled traded tokens: P25-P75 of value x one resampled miss (the band), P10-P90 of rank (refits only). */
   function bootstrapRanks(traded, rows, asOf, runs, seed) {
     const pts = fitPoints(traded, asOf, true);
     const full = fitCurve(pts, FULL);
@@ -286,10 +277,7 @@
     }));
   }
 
-  /**
-   * Comparables: the traded tokens closest in TVL within the same family (any family when it has too
-   * few), among those the curve prices within 10x (a wilder multiple is often a parent token's cap).
-   */
+  /** Comparables: same-family traded tokens closest in TVL, among those within 10x of the curve (wilder is often a parent's cap). */
   function nearestPeers(p, traded, k, fit, asOf) {
     const fam = familyOf(p.category), x = log10(p.tvl_usd);
     const typical = traded.filter((t) => Math.abs(log10(t.mcap_usd / impliedValue(t, fit, asOf).value)) <= 1);
@@ -301,7 +289,7 @@
       .map(({ t }) => ({ slug: t.slug, name: t.name, tvl_usd: t.tvl_usd, mcap_usd: t.mcap_usd, multiple: t.mcap_usd / t.tvl_usd, implied: Math.round(p.tvl_usd * (t.mcap_usd / t.tvl_usd)) }));
   }
 
-  // ------------------------------------------------------------ the farm plan
+  // -- the farm plan
 
   function gasOn(chain) {
     return Object.prototype.hasOwnProperty.call(ASSUME.gas, chain) ? ASSUME.gas[chain] : ASSUME.gasDefault;
@@ -352,10 +340,8 @@
   }
 
   /**
-   * A costed timeline for one protocol, from its own record: chain, deposit, hold length and stop level
-   * all follow from its chains, TVL, implied value, 7-day change and seasoning. The verdict compares the
-   * slice a depositor gets if a token launches at our value with the plan's costs: the break-even odds
-   * are the launch chance at which the plan pays for itself (we never guess that chance).
+   * A costed timeline from the protocol's own record (chains, TVL, value, 7-day change, seasoning). Break-even
+   * odds = the launch chance at which the slice pays the costs; we never guess that chance.
    */
   function farmPlan(p, value, asOf) {
     const days = daysSince(p.listed_at, asOf);
@@ -405,7 +391,7 @@
     return plan.breakEven > 1 ? `no launch chance covers it (it would need a launch worth ${usd(value * plan.breakEven)})` : `the chance a token launches, with a snapshot, inside the ${plan.weeks}-week hold`;
   }
 
-  // ------------------------------------------------------------ the whole board
+  // -- the whole board
 
   /** Everything the board shows, from the snapshot alone: main.ts writes it, the page re-derives it. */
   function buildRadar(snap) {

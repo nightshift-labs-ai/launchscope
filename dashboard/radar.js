@@ -1,6 +1,5 @@
-/* Launchscope page. Renders the board, a detail view per protocol and the method view. At load it runs
- * model.js's buildRadar on the raw snapshot in data.js (universe, fit, values, bootstrap, plans) and checks
- * every row against what main.ts wrote to board.json. */
+/* Launchscope page: board, detail and method views. At load it runs model.js's buildRadar on the raw
+ * snapshot in data.js and checks every row against board.json. */
 (function () {
   'use strict';
   const D = globalThis.LAUNCHSCOPE_DATA;
@@ -12,7 +11,7 @@
   const times = (m) => `×${m.toFixed(2)}`;
   const odds = (p) => (p > 1 ? '>100%' : `${Math.round(p * 100)}%`);
 
-  // ------------------------------------------------------------ re-derive and verify
+  // -- re-derive and verify
 
   /** Run the whole model on the snapshot here, then check each row against board.json by slug. */
   function deriveAll() {
@@ -33,7 +32,7 @@
   }
   const M = deriveAll();
 
-  // ------------------------------------------------------------ state in the URL hash
+  // -- state in the URL hash
 
   const DEFAULTS = { tab: '', fam: '', chain: '', verdict: '', watch: '', q: '', anchors: '1', sort: 'value', dir: 'desc' };
   const SORTS = {
@@ -69,10 +68,7 @@
     return rows.slice().sort((a, b) => { const x = key(a), y = key(b); return (x < y ? -1 : x > y ? 1 : 0) * sign || a.rank - b.rank; });
   }
 
-  /**
-   * Traded tokens as unranked anchors at their market cap, in value order only: those matching the
-   * filters and inside the shown value range, thinned to about one per six ranked rows.
-   */
+  /** Traded tokens as unranked anchors at market cap (value order only), matching the filters, about one per six rows. */
   function anchorsFor(shown, st) {
     if (st.anchors !== '1' || st.sort !== 'value' || shown.length === 0 || st.verdict || st.watch || st.q) return [];
     const top = shown[0].iv.value * 1.5, bottom = shown[shown.length - 1].iv.value / 1.5;
@@ -87,7 +83,7 @@
     return kept;
   }
 
-  // ------------------------------------------------------------ the board
+  // -- the board
 
   function kpis() {
     const k = M.check;
@@ -185,7 +181,7 @@
       <tbody>${body.join('') || '<tr><td colspan="9" class="empty">No ranked protocol matches these filters; remove a chip above.</td></tr>'}</tbody></table>`;
   }
 
-  // ------------------------------------------------------------ the detail view
+  // -- the detail view
 
   /** The value as an equation: the size curve at this TVL, times each multiplier, equals the value. */
   function equationHtml(r) {
@@ -241,7 +237,7 @@
       </div>`;
   }
 
-  // ------------------------------------------------------------ the method view
+  // -- the method view
 
   function scatterSvg() {
     const x = (v) => 70 + ((Math.log10(v) - 6.5) / 4.5) * 540, y = (v) => 370 - ((Math.log10(v) - 5) / 6) * 350;
@@ -286,7 +282,7 @@
         <p>${c.traded} trade (fit and anchors) · ${c.recorded} record a token with no market cap (not ranked) · ${c.ranked + c.set_aside} record no token: ${c.ranked} ranked, ${c.set_aside} set aside as ${Object.keys(why).map((k) => `${esc(k)} (${why[k]})`).join(', ')}.</p></section></div>`;
   }
 
-  // ------------------------------------------------------------ routing
+  // -- routing
 
   function route() {
     const r = readHash();
