@@ -28,8 +28,9 @@ git add -A                                            # shoot.mjs may swap .png 
 - Dossier path order: index.html, model.js, radar.js, style.css (model read 2nd, CSS last).
 
 ## Budgets (binding)
-- Dossier source text must stay <= 65,536 bytes uncut: now 65,435 (dashboard files 65,089 bytes; dossier
-  headings add ~346). Only ~100 bytes of room: any addition must be paid for by a trim first. The gate
+- Dossier source text must stay <= 65,536 bytes uncut: now 65,178 (dashboard files 64,832 bytes; dossier
+  headings add ~346). ~350 bytes of room: any addition must be paid for by a trim first. Text the judge
+  need not read in source (safety list, exchange names) can live in main.ts and travel via data.js. The gate
   fails on a cut (our strict rule). Trims already taken: comments, merged CSS, family table -> one line,
   word lists as split strings, VARIANTS as tuples, shared HEAD labels, legend glyphs, honesty box, the
   index.html judge comment. Remaining trim candidates: long doc comments on bootstrapRanks/nearestPeers,
@@ -112,6 +113,20 @@ git add -A                                            # shoot.mjs may swap .png 
   first in bold 108f4bf; C12 readability 4cc3d92: secondary text 14 px, tags 13 px (nowrap), band bar
   90 px, header letter-spacing 0.01em so the board table fits 1408 px exactly in every variant. The 1.2x
   shoot (tools/shoot.mjs --scale 1.2) was tried and rejected: board and method tables overflow at 1200 px.
+
+## Operator round after v3 (2026-11-16, 05:4xZ)
+- A/B: 3a8b8d7 beat ac7d331 6/6, decided on criterion 2 (computed rank moves, stated tilt bounds, 365*,
+  uncapped scatter, bold filtered chain): KEEP. 3a8b8d7 submitted as v3. Judges preferred three older
+  features, now back:
+  0. trims first: comments that restate code 2d47613 (-610 B); exchange names moved out of model.js into
+     main.ts (EXCHANGES -> buildRadar(snap, exchanges), data.js `exchanges`, board.json `exchange_names`;
+     rows byte-identical; synthetic "OKX Earn" row still set aside) 84bf32f
+  1. traded anchors on by default (DEFAULTS.anchors '1'; counter still "181 of 181 ranked shown, 22
+     traded anchors") bb433b6
+  2. detail safety list (4 points) + assumptions line with the chain's gas and $500-$5,000; wording in
+     main.ts HONESTY -> data.js `honesty` (costs no judge bytes) 7977aa5
+  3. anchors toggle .off (opacity .45) via one anchorsOff(st) rule, set on every results render (follows
+     the search box too) d226283
 
 ## Status
 - M1 b1bcfe7, M2 2a5f60e, M3 06c14b7, operator items 1-6 and review items above. Gate 8/8 +
