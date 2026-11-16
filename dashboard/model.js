@@ -95,10 +95,11 @@
   const FAMILY_LABEL = { lend: 'Lending & CDP', trade: 'Trading', vault: 'Vaults & yield', rwa: 'RWA & stables', stake: 'Staking', infra: 'Infra & chains', cex: 'Exchanges', other: 'Other' };
   const familyOf = (category) => FAMILY_OF[category] || 'other';
 
-  // The house's watchlist rule, minus its $50M floor: the same exclusions applied to every size.
-  const PRODUCT_CATEGORIES = 'Bridge|Canonical Bridge|Liquid Staking|Liquid Restaking|Restaked BTC|CEX'.split('|');
-  const VERSIONED = /\s(V\d+(\.\d+)?|v\d+(\.\d+)?|\d+\.\d+)$/;
-  const WRAP_WORD = /\b(wrapped|staked|staking)\b/i;
+  // The house's watchlist rule, minus its $50M floor. Each class is a product of a token that already trades:
+  const PRODUCT_CATEGORIES = 'Bridge|Canonical Bridge|Liquid Staking|Liquid Restaking|Restaked BTC|CEX'.split('|'); // bridged or staked coins
+  const VERSIONED = /\s(V\d+(\.\d+)?|v\d+(\.\d+)?|\d+\.\d+)$/; // a release of an older protocol
+  const WRAP_WORD = /\b(wrapped|staked|staking)\b/i; // a wrapped or staked coin
+  const EXCHANGES = 'binance coinbase bybit kraken bitget okx bitfinex gemini'.split(' '); // an exchange's own product
   // Our additions: chain venues ("XRPL DEX"), names shared with a token-bearing protocol.
   const CHAIN_VENUE = /^\S+ (DEX|AMM)$/i;
   // Words too common to link two names; chain names join them from the data.
@@ -118,18 +119,18 @@
   }
 
   /** Why a no-token protocol is kept off the ranks; null for a launch still to come. */
-  function setAsideReason(p, stems, generic, exchanges) {
+  function setAsideReason(p, stems, generic) {
     if (PRODUCT_CATEGORIES.includes(p.category)) return `${p.category}: usually a product of a token that trades`;
     if (VERSIONED.test(p.name)) return 'versioned name: a release of another protocol';
     if (WRAP_WORD.test(p.name)) return 'wrapped or staked product';
-    if (exchanges.includes(firstWord(p.name))) return "starts with an exchange's name";
+    if (EXCHANGES.includes(firstWord(p.name))) return "starts with an exchange's name";
     const stem = nameStem(p.name, generic);
     if (stem && stems.has(stem)) return `shares its name with ${stems.get(stem)}, which records a token`;
     if (CHAIN_VENUE.test(p.name) || p.chains.some((c) => firstWord(c) === firstWord(p.name))) return 'named for its chain, whose coin may be its token';
     return null;
   }
 
-  function selectUniverse(snap, exchanges) {
+  function selectUniverse(snap) {
     const watch = new Set(snap.watchlist);
     const generic = new Set(GENERIC_WORDS);
     for (const p of snap.protocols) for (const c of p.chains) generic.add(firstWord(c));
@@ -145,7 +146,7 @@
       if (status === 'trades') traded.push(p);
       else if (status === 'recorded') recorded++;
       else {
-        const on = watch.has(p.slug), why = setAsideReason(p, stems, generic, exchanges);
+        const on = watch.has(p.slug), why = setAsideReason(p, stems, generic);
         const parent = !why && !on && p.tvl_usd >= snap.floor_usd ? `above the ${usd(snap.floor_usd)} floor yet off the house watchlist; the house rule leaves out protocols DefiLlama files under a parent, which this snapshot does not name` : null;
         if (why === null || on) ranked.push({ p, watch: on, note: why || parent });
         else setAside.push({ slug: p.slug, name: p.name, tvl_usd: p.tvl_usd, reason: why });
@@ -385,8 +386,8 @@
 
   // -- the whole board
 
-  function buildRadar(snap, exchanges = []) {
-    const u = selectUniverse(snap, exchanges);
+  function buildRadar(snap) {
+    const u = selectUniverse(snap);
     const fit = fitCurve(fitPoints(u.traded, snap.as_of, true), FULL);
     const scored = u.ranked.map((r) => ({ r, iv: impliedValue(r.p, fit, snap.as_of) }));
     scored.sort((x, y) => y.iv.value - x.iv.value || cmp(x.r.p.slug, y.r.p.slug));

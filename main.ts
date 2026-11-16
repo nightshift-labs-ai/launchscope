@@ -93,10 +93,8 @@ const snap = parseSnapshot(readFileSync(inputFile, 'utf8'));
 
 // ---------------------------------------------------------------- the model
 
-// The house watchlist rule's exchange names (RULES.txt, "The snapshot"): a protocol whose name starts with
-// one is an exchange product. Passed to the model as data, so model.js holds no list of names.
-const EXCHANGES = ['binance', 'coinbase', 'bybit', 'kraken', 'bitget', 'okx', 'bitfinex', 'gemini'];
-const radar = L.buildRadar(snap, EXCHANGES);
+// The whole model in one call: the same buildRadar the page re-runs on the same snapshot.
+const radar = L.buildRadar(snap);
 const r4 = (n: number) => Math.round(n * 1e4) / 1e4;
 
 /** One plan step as a farm_steps string: when, what, what it costs and how long it takes. */
@@ -171,7 +169,6 @@ if (issue !== null) fail(`the model wrote a board the gate refuses: ${issue}`);
 // run of buildRadar against (rank, value, band, rank range, verdict and net, by slug).
 const data = {
   model_version: L.MODEL.version,
-  exchanges: EXCHANGES,
   honesty: HONESTY,
   snapshot: snap,
   fit: { a: radar.fit.a, b: radar.fit.b },
@@ -181,7 +178,7 @@ const data = {
 // ---------------------------------------------------------------- the files
 
 mkdirSync(out, { recursive: true });
-writeFileSync(join(out, 'board.json'), `${JSON.stringify({ model: L.MODEL.version, as_of: snap.as_of, ranks: 'protocols that record no token only; traded tokens are unranked anchors', exchange_names: EXCHANGES, rows: board })}\n`);
+writeFileSync(join(out, 'board.json'), `${JSON.stringify({ model: L.MODEL.version, as_of: snap.as_of, ranks: 'protocols that record no token only; traded tokens are unranked anchors', rows: board })}\n`);
 writeFileSync(join(out, 'data.js'), `// Launchscope data: written by main.ts from ${snap.as_of}'s snapshot. The page re-derives every value from it.\nglobalThis.LAUNCHSCOPE_DATA = ${JSON.stringify(data)};\n`);
 
 /** Copy a directory tree's regular files (names starting with a dot skipped) into a fresh `to`. */
