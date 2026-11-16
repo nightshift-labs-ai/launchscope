@@ -28,11 +28,13 @@ git add -A                                            # shoot.mjs may swap .png 
 - Dossier path order: index.html, model.js, radar.js, style.css (model read 2nd, CSS last).
 
 ## Budgets (binding)
-- Dossier source text must stay <= 65,536 bytes uncut: now 65,423 (dashboard files 65,076 bytes; dossier
-  headings add ~350). Only ~110 bytes of room: any addition must be paid for by a trim first. The gate
+- Dossier source text must stay <= 65,536 bytes uncut: now 65,435 (dashboard files 65,089 bytes; dossier
+  headings add ~346). Only ~100 bytes of room: any addition must be paid for by a trim first. The gate
   fails on a cut (our strict rule). Trims already taken: comments, merged CSS, family table -> one line,
-  word lists as split strings, VARIANTS as tuples, shared HEAD labels, legend glyphs.
-- Dossier <= 1.5 MiB: now 1.39 MB. 4 screenshots, each <= 270 KB (base64 grows them by a third).
+  word lists as split strings, VARIANTS as tuples, shared HEAD labels, legend glyphs, honesty box, the
+  index.html judge comment. Remaining trim candidates: long doc comments on bootstrapRanks/nearestPeers,
+  the "From 758 protocols" paragraph, KPI span wording.
+- Dossier <= 1.5 MiB: now 1.38 MB. 4 screenshots, each <= 270 KB (base64 grows them by a third).
 
 ## Model (snapshot as_of 2026-11-14)
 - Universe: 758 protocols; 128 trade (mcap > 0: fit + anchors), 288 record a token without mcap (not
@@ -96,10 +98,26 @@ git add -A                                            # shoot.mjs may swap .png 
   4. net per hour: board second line + sortable, detail totals 836ea52
   5. native-coin plans say "you already hold", no bridge 74286ab
   6. verdict cap on a 7-day TVL fall past -30%, stated in detail + method fb7b693
-- No radar1_review_m3.md existed at the time of this round.
+- Then the merged review /home/agent/makefun/briefs/radar1_review_m3.md (appeared mid-round), one per commit:
+  A1 rank range = "P10-P90 of 200 refits" 6ce1cfc; A2 family offsets "each capped at 10x" 00d50a9;
+  A3 method quotes its own table + computed rank moves (buildRadar.moves: 104/181 by 5+, 44 by 10+;
+  115/128 traded tokens lost TVL, computed) f26e0d0; B7 GROUND_RULES string in every row's farm_steps
+  (main.ts, 11-12 steps) 4de4062; B8 honesty box -> one line under plan totals db5201f; A4 explainer:
+  only curve + family are fitted, tilts bounded 842621d; A5 tag "off list >= floor" + exact note,
+  EXCHANGE_NAME back (sets aside 0: CEX category first) b6c6a1d; A6 KPI says "verdicts and nets match"
+  b54fae5; B9 "Days tracked", 365* where no listing date 8d23ee5; B10 tab label kept (no change);
+  B11 plan wording (native coin "do not buy it", resting quotes + country-terms step, CDP < $1, CDP
+  Manager -> vault action, hedged exit waits) 24f3800; C13 default board without anchors 60739ce;
+  C13b judge note states rank moves dd70906; C15 scatter y-axis to $10K 0ff59d4; C14 filtered chain
+  first in bold 108f4bf. C12 (readability at 1024 px): see Status.
 
 ## Status
-- M1 b1bcfe7, M2 2a5f60e, M3 06c14b7, operator items 1-6 above. Gate 8/8 + determinism after each.
-- Possible next steps (free bytes first; ~110 bytes left): sibling grouping for products of one
-  pre-token protocol (Felix Vaults/Felix CDP, Figure Markets Prime/Exchange, Avant avUSD/avETH); prev/next
-  links in the detail view; method legend wraps mid-formula; the board's "sorted by Implied value" capital.
+- M1 b1bcfe7, M2 2a5f60e, M3 06c14b7, operator items 1-6 and review items above. Gate 8/8 +
+  determinism after each commit; verdicts now 57 farm / 80 marginal / 44 skip.
+- Open: review C12, readability at the judge's 1024 px (secondary text 13 px renders ~9 px). Two routes:
+  (a) shoot.mjs at a 1200x833 viewport with deviceScaleFactor 1.2 (file stays 1440x1000, zero dashboard
+  bytes; check the board table and the .detail/.method grids still fit, maybe fr units), or (b) a 14 px
+  minimum in style.css (byte-neutral edits, fewer rows above the fold). Look at all 4 shots after.
+- Possible next steps (free bytes first): sibling grouping for products of one pre-token protocol (Felix
+  Vaults/Felix CDP, Figure Markets Prime/Exchange, Avant avUSD/avETH); prev/next links in the detail view;
+  method legend wraps mid-formula; the board's "sorted by Implied value" capital.
