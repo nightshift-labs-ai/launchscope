@@ -101,6 +101,7 @@
   const PRODUCT_CATEGORIES = 'Bridge|Canonical Bridge|Liquid Staking|Liquid Restaking|Restaked BTC|CEX'.split('|');
   const VERSIONED = /\s(V\d+(\.\d+)?|v\d+(\.\d+)?|\d+\.\d+)$/;
   const WRAP_WORD = /\b(wrapped|staked|staking)\b/i;
+  const EXCHANGE_NAME = /^(Binance|Coinbase|Bybit|Kraken|Bitget|OKX|Bitfinex|Gemini)\b/i;
   // Our two additions: a chain's own trading venue ("XRPL DEX"), and a name shared with a token-bearing protocol.
   const CHAIN_VENUE = /^\S+ (DEX|AMM)$/i;
   // First words that tie no two protocols together; every chain's first word joins them from the data.
@@ -124,6 +125,7 @@
     if (PRODUCT_CATEGORIES.includes(p.category)) return `${p.category}: usually a product of a token that trades`;
     if (VERSIONED.test(p.name)) return 'versioned name: a release of another protocol';
     if (WRAP_WORD.test(p.name)) return 'wrapped or staked product';
+    if (EXCHANGE_NAME.test(p.name)) return "starts with an exchange's name";
     const stem = nameStem(p.name, generic);
     if (stem && stems.has(stem)) return `shares its name with ${stems.get(stem)}, which records a token`;
     if (CHAIN_VENUE.test(p.name) || p.chains.some((c) => firstWord(c) === firstWord(p.name))) return 'named for its chain, whose coin may be its token';
@@ -149,7 +151,7 @@
       else {
         const on = watch.has(p.slug), why = setAsideReason(p, stems, generic);
         // Above the floor yet off the watchlist means DefiLlama files it under a parent: ranked, noted.
-        const parent = !why && !on && p.tvl_usd >= snap.floor_usd ? 'off the house watchlist though above its floor: DefiLlama files it under a parent, which records no token by name' : null;
+        const parent = !why && !on && p.tvl_usd >= snap.floor_usd ? `above the ${usd(snap.floor_usd)} floor yet off the house watchlist; the house rule leaves out protocols DefiLlama files under a parent, which this snapshot does not name` : null;
         if (why === null || on) ranked.push({ p, watch: on, note: why || parent });
         else setAside.push({ slug: p.slug, name: p.name, tvl_usd: p.tvl_usd, reason: why });
       }

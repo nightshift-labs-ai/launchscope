@@ -99,7 +99,7 @@
   const lo = Math.log10(Math.min(...M.rows.map((r) => r.boot.p25))), span = Math.log10(Math.max(...M.rows.map((r) => r.boot.p75))) - lo;
   const at = (v) => Math.min(100, Math.max(0, (100 * (Math.log10(v) - lo)) / span));
   const bandBar = (r) => `<span class="bb"><i style="left:${at(r.boot.p25).toFixed(1)}%;width:${(at(r.boot.p75) - at(r.boot.p25)).toFixed(1)}%"></i><b style="left:${at(r.iv.value).toFixed(1)}%"></b></span>`;
-  const NOTE_TAG = { off: 'parented', named: 'chain-named', shares: 'name shared' };
+  const NOTE_TAG = { above: 'off list ≥ floor', named: 'chain-named', shares: 'name shared' };
   function rowHtml(r) {
     const p = r.plan, tag = r.note && NOTE_TAG[r.note.split(' ')[0]];
     const net = p.net < 0 ? `<td class="num neg"><b>needs ${L.usd(r.iv.value * p.breakEven)}</b><small>launch value to pay</small></td>` : `<td class="num"><b>${L.usd(p.net)}</b><small>${L.usd(p.perHour)}/h · ${p.weeks} wk</small></td>`;
