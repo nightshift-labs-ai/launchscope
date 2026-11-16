@@ -91,7 +91,7 @@
       <div><b>${M.rows.length}</b><span>ranked: record no token</span></div>
       <div><b>${M.traded.length}</b><span>traded tokens fit the curve, shown grey</span></div>
       <div><b>${M.R.universe.setAside.length}</b><span>set aside, reasons on Method</span></div>
-      <div class="check ${k.ok ? 'ok' : 'bad'}"><b>${k.ok ? '✓' : '✗'} board.json = this page</b><span>buildRadar re-run on the snapshot in your browser: ${k.ranked}/${k.n} ranks, ${k.values} values, ${k.bands} bands, ${k.ranks} rank ranges, ${k.plans} plans match</span></div>
+      <div class="check ${k.ok ? 'ok' : 'bad'}"><b>${k.ok ? '✓' : '✗'} board.json = this page</b><span>buildRadar re-run in your browser: ${k.ranked}/${k.n} ranks, ${k.values} values, ${k.bands} bands, ${k.ranks} rank ranges, ${k.plans} verdicts and nets match</span></div>
     </section>`;
   }
 
