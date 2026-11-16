@@ -33,7 +33,7 @@
 
   // -- state in the URL hash
 
-  const DEFAULTS = { tab: '', fam: '', chain: '', verdict: '', watch: '', q: '', anchors: '1', sort: 'value', dir: 'desc' };
+  const DEFAULTS = { tab: '', fam: '', chain: '', verdict: '', watch: '', q: '', anchors: '', sort: 'value', dir: 'desc' };
   const SORTS = {
     value: (r) => r.iv.value, name: (r) => r.name.toLowerCase(), tvl: (r) => r.tvl_usd, growth: (r) => (r.change_7d === null ? -1e9 : r.change_7d),
     days: (r) => (r.iv.days === null ? -1 : r.iv.days), odds: (r) => r.plan.breakEven, net: (r) => r.plan.net, perhour: (r) => r.plan.perHour,
@@ -89,7 +89,7 @@
     return `<section class="kpis">
       <div><b>${M.watch}/${S.watchlist.length}</b><span>watchlist protocols ranked, counted here</span></div>
       <div><b>${M.rows.length}</b><span>ranked: record no token</span></div>
-      <div><b>${M.traded.length}</b><span>traded tokens fit the curve, shown grey</span></div>
+      <div><b>${M.traded.length}</b><span>already trade: fit the curve, never ranked</span></div>
       <div><b>${M.R.universe.setAside.length}</b><span>set aside, reasons on Method</span></div>
       <div class="check ${k.ok ? 'ok' : 'bad'}"><b>${k.ok ? '✓' : '✗'} board.json = this page</b><span>buildRadar re-run in your browser: ${k.ranked}/${k.n} ranks, ${k.values} values, ${k.bands} bands, ${k.ranks} rank ranges, ${k.plans} verdicts and nets match</span></div>
     </section>`;
@@ -136,7 +136,7 @@
     const chip = (key, val, label, n) => `<button class="chip ${st[key] === val ? 'on' : ''}" data-k="${key}" data-v="${esc(val)}">${esc(label)} <small>${n}</small></button>`;
     const chains = Object.keys(chainCount).sort((a, b) => chainCount[b] - chainCount[a] || (a < b ? -1 : 1)).slice(0, 30);
     $('#view').innerHTML = `${kpis()}
-      <p class="explain">Implied value = size curve on TVL × category family, both fit on ${M.traded.length} traded tokens, × bounded tilts for 7-day growth (×${L.MODEL.growthMin}–${L.MODEL.growthMax}) and time tracked with no token recorded (down to ×${1 - L.MODEL.seasonDepth}; 365* = no listing date, assumed). Under each rank: its P10–P90 rank over 200 refits; the band adds a protocol's own miss. Big pools farm poorly: $5,000 is a thin slice. Grey rows trade already: no rank.</p>
+      <p class="explain">Implied value = size curve on TVL × category family, both fit on ${M.traded.length} traded tokens, × bounded tilts for 7-day growth (×${L.MODEL.growthMin}–${L.MODEL.growthMax}) and time tracked with no token recorded (down to ×${1 - L.MODEL.seasonDepth}; 365* = no listing date, assumed). Under each rank: its P10–P90 rank over 200 refits; the band adds a protocol's own miss. Big pools farm poorly: $5,000 is a thin slice.</p>
       <div class="toolbar">
         <div class="group seg">${chip('tab', '', 'Still to come', M.rows.length)}${chip('tab', 'traded', 'Already trades', M.traded.length)}</div>
         <input id="q" type="search" placeholder="Search a protocol" value="${esc(st.q)}" aria-label="Search">
