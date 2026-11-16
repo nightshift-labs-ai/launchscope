@@ -39,7 +39,7 @@
     value: (r) => r.iv.value, name: (r) => r.name.toLowerCase(), tvl: (r) => r.tvl_usd, growth: (r) => (r.change_7d === null ? -1e9 : r.change_7d),
     days: (r) => (r.iv.days === null ? -1 : r.iv.days), odds: (r) => r.plan.breakEven, net: (r) => r.plan.net,
   };
-  const SORT_LABEL = { value: 'implied value', name: 'name', tvl: 'TVL', growth: '7-day TVL change', days: 'days with no token', odds: 'break-even odds', net: 'net if a token launches' };
+  const HEAD = { name: 'Protocol', value: 'Implied value', tvl: 'TVL', growth: '7d TVL', days: 'Days, no token', odds: 'Break-even odds', net: 'Net if launch' };
 
   function readHash() {
     const h = decodeURIComponent(location.hash.slice(1));
@@ -179,9 +179,9 @@
       const label = k === 'fam' ? L.FAMILY_LABEL[st.fam] : k === 'verdict' ? L.VERDICT_LABEL[st.verdict] : k === 'watch' ? 'Watchlist only' : k === 'q' ? `“${st.q}”` : st.chain;
       return `<button class="chip on x" data-k="${k}" data-v="${esc(st[k])}">${esc(label)} ✕</button>`;
     }).join('');
-    const th = (key, label, cls) => `<th data-s="${key}" class="${cls || ''} ${st.sort === key ? 'sorted' : ''}">${label}${st.sort === key ? (st.dir === 'asc' ? ' ▲' : ' ▼') : ''}</th>`;
-    $('#results').innerHTML = `<div class="status">${active}<span><b>${shown.length}</b> of ${M.rows.length} ranked shown${anchors.length ? `, ${anchors.length} traded anchors` : ''} · sorted by ${SORT_LABEL[st.sort]}</span></div>
-      <table class="board"><thead><tr><th class="rk">#</th>${th('name', 'Protocol')}${th('value', 'Implied value')}<th>P25–P75 band</th>${th('tvl', 'TVL', 'num')}${th('growth', '7d TVL', 'num')}${th('days', 'Days, no token', 'num')}${th('odds', 'Break-even odds', 'num')}${th('net', 'Net if launch', 'num')}<th>Farm verdict</th></tr></thead>
+    const th = (key, cls) => `<th data-s="${key}" class="${cls || ''} ${st.sort === key ? 'sorted' : ''}">${HEAD[key]}${st.sort === key ? (st.dir === 'asc' ? ' ▲' : ' ▼') : ''}</th>`;
+    $('#results').innerHTML = `<div class="status">${active}<span><b>${shown.length}</b> of ${M.rows.length} ranked shown${anchors.length ? `, ${anchors.length} traded anchors` : ''} · sorted by ${HEAD[st.sort].toLowerCase()}</span></div>
+      <table class="board"><thead><tr><th class="rk">#</th>${th('name')}${th('value')}<th>P25–P75 band</th>${['tvl', 'growth', 'days', 'odds', 'net'].map((k) => th(k, 'num')).join('')}<th>Farm verdict</th></tr></thead>
       <tbody>${body.join('') || '<tr><td colspan="10" class="empty">No ranked protocol matches these filters; remove a chip above.</td></tr>'}</tbody></table>`;
   }
 
@@ -267,7 +267,7 @@
 
   function renderMethod() {
     const loo = M.R.loo, f = M.fit, u = M.R.universe;
-    const looRows = loo.map((v) => `<tr><td>${esc(v.label)}</td><td class="num"><b>${v.medianMiss.toFixed(2)}×</b></td><td class="num">${v.meanLogMiss.toFixed(3)}</td><td class="num">${Math.round(v.within3x * 100)}%</td></tr>`).join('');
+    const looRows = loo.map((v) => `<tr><td>${esc(v.label)}</td><td class="num"><b>${v.medianMiss.toFixed(2)}×</b></td><td class="num">${v.meanLogMiss.toFixed(3)}</td><td class="num">${Math.round(v.within3x * 100)}%</td><td class="num">${v.rankCorr.toFixed(2)}</td></tr>`).join('');
     const famN = {};
     M.traded.forEach((t) => { const k = L.familyOf(t.category); famN[k] = (famN[k] || 0) + 1; });
     const fams = Object.keys(f.fam).map((k) => `${L.FAMILY_LABEL[k]} <b>${times(10 ** f.fam[k])}</b> (${famN[k]})`).join(' · ');
@@ -276,7 +276,7 @@
     const c = { protocols: S.protocols.length, watchlist: S.watchlist.length, ranked: M.rows.length, traded: M.traded.length, set_aside: u.setAside.length, recorded: u.recorded };
     $('#view').innerHTML = `<div class="method">
       <section class="card"><h2>The fit: ${c.traded} traded tokens, market cap against TVL</h2>${scatterSvg()}
-        <p class="legend"><i class="dot t"></i> traded token <i class="dot r"></i> ranked protocol at its implied value <i class="dot fit"></i> size curve: log10 value = ${f.a.toFixed(2)} + ${f.b.toFixed(2)} × log10(TVL / $100M)</p>
+        <p class="legend"><b class="t">●</b> traded token <b class="r">■</b> ranked protocol at its implied value <b>—</b> size curve: log10 value = ${f.a.toFixed(2)} + ${f.b.toFixed(2)} × log10(TVL / $100M)</p>
         <p>A token's market cap grows with TVL at a slope of ${f.b.toFixed(2)}: ten times the TVL is worth ${(10 ** f.b).toFixed(1)} times the value, so small protocols carry a higher multiple than large ones.</p>
         <div class="judge"><h2>Note to the judge</h2><ol>
           <li>Working radar: <code>deriveAll</code> runs <code>buildRadar</code> on the raw snapshot in this browser; <code>selectUniverse</code> ranks ${M.watch} of ${c.watchlist} watchlist protocols plus ${c.ranked - M.watch} more; every row is checked against board.json (${M.check.ok ? 'all match' : 'see the board'}).</li>
@@ -285,8 +285,8 @@
           <li>Page: <code>filterRows</code>, <code>sortRows</code>, <code>renderDetail</code>; state lives in the URL hash.</li>
         </ol></div></section>
       <section class="card"><h2>Out of sample: each traded token priced by a fit that never saw it</h2>
-        <table class="mini"><thead><tr><th>Model</th><th class="num">Median miss</th><th class="num">Mean |log miss|</th><th class="num">Within 3×</th></tr></thead><tbody>${looRows}</tbody></table>
-        <p>Size curve and family earn their place. Growth and seasoning do not cut the miss (${loo[3].meanLogMiss.toFixed(3)} vs ${loo[2].meanLogMiss.toFixed(3)}): traded TVL fell almost everywhere this week, and a traded token's age is not time without a token. So both are bounded priors: growth tilts value by half the 7-day change (×${L.MODEL.growthMin}–×${L.MODEL.growthMax}); seasoning discounts a new protocol up to ${L.MODEL.seasonDepth * 100}%, fading over ${L.MODEL.seasonDays} days. A ${loo[3].medianMiss.toFixed(1)}× median miss is why every row shows a band.</p>
+        <table class="mini"><thead><tr><th>Model</th><th class="num">Median miss</th><th class="num">Mean |log miss|</th><th class="num">Within 3×</th><th class="num">Rank corr.</th></tr></thead><tbody>${looRows}</tbody></table>
+        <p>Size curve and family earn their place. Growth and seasoning do not cut the miss (${loo[3].meanLogMiss.toFixed(3)} vs ${loo[2].meanLogMiss.toFixed(3)}): traded TVL fell almost everywhere this week, and a traded token's age is not time without a token. So both are bounded priors: growth tilts value by half the 7-day change (×${L.MODEL.growthMin}–×${L.MODEL.growthMax}); seasoning discounts a new protocol up to ${L.MODEL.seasonDepth * 100}%, fading over ${L.MODEL.seasonDays} days. A ${loo[3].medianMiss.toFixed(1)}× median miss is why every row shows a band. Rank corr. tests the ranking itself (Spearman's rho inside 8 held-out folds): about ${loo[0].rankCorr.toFixed(1)} for every variant, so order comes from TVL; the extras cut the miss, not the rank error.</p>
         <h2>Category family offsets <small>mean miss, clipped at 10×, shrunk by ${L.MODEL.familyShrinkK} pseudo-tokens (traded tokens)</small></h2><p>${fams}</p>
         <h2>From ${c.protocols} protocols to ${c.ranked} ranks</h2>
         <p>${c.traded} trade (fit and anchors) · ${c.recorded} record a token with no market cap (not ranked) · ${c.ranked + c.set_aside} record no token: ${c.ranked} ranked, ${c.set_aside} set aside as ${Object.keys(why).map((k) => `${esc(k)} (${why[k]})`).join(', ')}.</p></section></div>`;

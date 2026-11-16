@@ -231,12 +231,26 @@
     ['family', '+ category family', 1, 1, 0], ['full', '+ growth & seasoning priors', 1, 1, 1]]
     .map(([key, label, slope, families, priors]) => ({ key, label, slope: !!slope, families: !!families, priors: !!priors }));
 
+  /** Spearman's rho from ranks (the values are continuous, so ties do not arise). */
+  function spearman(a, b) {
+    const ranks = (v) => { const r = []; v.map((x, i) => i).sort((i, j) => v[i] - v[j]).forEach((i, k) => (r[i] = k)); return r; };
+    const ra = ranks(a), rb = ranks(b), n = a.length;
+    return 1 - (6 * ra.reduce((s, x, i) => s + (x - rb[i]) ** 2, 0)) / (n * (n * n - 1));
+  }
+
   /** Each traded token predicted by a fit that never saw it, for each nested variant of the model. */
   function looCheck(traded, asOf) {
     return VARIANTS.map((v) => {
       const pts = fitPoints(traded, asOf, v.priors);
       const miss = pts.map((pt, i) => Math.abs(pt.y - predictLog(fitCurve(pts.filter((_, j) => j !== i), v), pt.x, pt.fam)));
+      // The ranking itself, out of sample: Spearman's rho inside each of 8 fixed held-out folds, averaged.
+      let rankCorr = 0;
+      for (let f = 0; f < 8; f++) {
+        const fit = fitCurve(pts.filter((_, j) => j % 8 !== f), v), held = pts.filter((_, j) => j % 8 === f);
+        rankCorr += spearman(held.map((pt) => predictLog(fit, pt.x, pt.fam) + pt.prior), held.map((pt) => pt.y + pt.prior)) / 8;
+      }
       return {
+        rankCorr,
         key: v.key, label: v.label, n: pts.length,
         medianMiss: Math.pow(10, quantile(miss, 0.5)),
         meanLogMiss: miss.reduce((s, m) => s + m, 0) / miss.length,
