@@ -1,7 +1,5 @@
-/* Launchscope model: snapshot in, board out. main.ts runs it for board.json; the page re-runs buildRadar.
- *   value = 10^(a + b * log10(TVL / $100M) + family offset) * growthTilt * seasonTilt
- * a, b: least squares on logs over the traded tokens (market cap vs TVL); family offset: shrunk mean miss;
- * tilts: bounded priors for 7-day growth and days with no token. No value is set by a name. */
+/* Launchscope model: snapshot in, board out; main.ts and the page both run buildRadar. No value is set by a name:
+ *   value = 10^(a + b * log10(TVL / $100M) + family offset) * growthTilt * seasonTilt */
 (function (root) {
   'use strict';
 
@@ -9,17 +7,17 @@
     version: 'launchscope-1',
     centerLogTvl: 8, // the curve is centred at $100M of TVL
     familyShrinkK: 8, // pseudo-tokens pulling each family offset toward zero
-    growthWeight: 0.5, // +10% TVL in 7 days tilts value by +5%...
-    growthMin: 0.8, // ...within x0.80 to x1.25
+    growthWeight: 0.5, // +10% TVL in 7 days: +5% value, within x0.8-x1.25
+    growthMin: 0.8,
     growthMax: 1.25,
-    seasonDepth: 0.4, // a protocol tracked for 0 days is discounted 40%...
-    seasonDays: 240, // ...and the discount fades with this time constant (days)
+    seasonDepth: 0.4, // 0 days tracked: -40%, fading over 240 days
+    seasonDays: 240,
     unknownDays: 365, // no listed_at: assume one year
     bootstrapRuns: 200,
     seed: 20261114,
   };
 
-  // Farm-plan assumptions, stated on every plan (the snapshot carries no gas, fee or yield figures).
+  // Farm-plan assumptions (the snapshot has no gas, fee or yield figures).
   const ASSUME = {
     tbillRate: 0.04, // a year, what the capital would earn instead
     depositYield: { lend: 0.03, vault: 0.03, rwa: 0.035, stake: 0.03, trade: 0.02 }, // what the deposit itself earns
@@ -80,7 +78,7 @@
 
   // -- families and the universe
 
-  // DefiLlama's categories in eight families: one category alone holds too few traded tokens to fit.
+  // Eight families: one category alone has too few traded tokens to fit.
   const FAMILY_OF = {};
   for (const [fam, cats] of Object.entries({
     lend: 'Lending|CDP|CDP Manager|Uncollateralized Lending|Collateral Markets|Collateral Management',
@@ -267,7 +265,7 @@
     }));
   }
 
-  /** Same-family traded peers nearest in TVL, within 10x of the curve (wilder is often a parent's cap). */
+  /** Same-family traded peers nearest in TVL, within 10x of the curve. */
   function nearestPeers(p, traded, k, fit, asOf) {
     const fam = familyOf(p.category), x = log10(p.tvl_usd);
     const typical = traded.filter((t) => Math.abs(log10(t.mcap_usd / impliedValue(t, fit, asOf).value)) <= 1);

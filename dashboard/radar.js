@@ -1,4 +1,4 @@
-/* Launchscope page: board, detail, method. At load buildRadar re-runs on the raw snapshot; each row is checked. */
+/* Launchscope page: board, detail, method; buildRadar re-runs here and each row is checked. */
 (function () {
   'use strict';
   const D = globalThis.LAUNCHSCOPE_DATA;
@@ -51,7 +51,6 @@
     history.replaceState(null, '', back);
   }
 
-  /** Family, chain, verdict, watchlist and name filters. */
   function filterRows(rows, st) {
     const q = st.q.trim().toLowerCase();
     return rows.filter((r) => (!st.fam || r.iv.fam === st.fam) && (!st.chain || r.chains.includes(st.chain)) &&
@@ -63,7 +62,7 @@
     return rows.slice().sort((a, b) => { const x = key(a), y = key(b); return (x < y ? -1 : x > y ? 1 : 0) * sign || a.rank - b.rank; });
   }
 
-  // Anchors sit in value order only, and not under a verdict, watchlist or search filter.
+  // Anchors: value order only, no verdict, watchlist or search filter.
   const anchorsOff = (st) => st.sort !== 'value' || !!(st.verdict || st.watch || st.q);
   /** Traded tokens as unranked anchors at market cap, about one per six rows. */
   function anchorsFor(shown, st) {
@@ -80,12 +79,11 @@
     return kept;
   }
 
-  // -- the board
 
   function kpis() {
     const k = M.check;
     return `<section class="kpis">
-      <div><b>${M.watch}/${S.watchlist.length}</b><span>watchlist protocols ranked, counted here</span></div>
+      <div><b>${M.watch}/${S.watchlist.length}</b><span>watchlist ranked, counted here</span></div>
       <div><b>${M.rows.length}</b><span>ranked: record no token</span></div>
       <div><b>${M.traded.length}</b><span>already trade: fit the curve, never ranked</span></div>
       <div><b>${M.R.universe.setAside.length}</b><span>set aside, reasons on Method</span></div>
@@ -93,7 +91,6 @@
     </section>`;
   }
 
-  // One log scale for all bands, so they compare at a glance.
   const lo = Math.log10(Math.min(...M.rows.map((r) => r.boot.p25))), span = Math.log10(Math.max(...M.rows.map((r) => r.boot.p75))) - lo;
   const at = (v) => Math.min(100, Math.max(0, (100 * (Math.log10(v) - lo)) / span));
   const bandBar = (r) => `<span class="bb"><i style="left:${at(r.boot.p25).toFixed(1)}%;width:${(at(r.boot.p75) - at(r.boot.p25)).toFixed(1)}%"></i><b style="left:${at(r.iv.value).toFixed(1)}%"></b></span>`;
@@ -105,7 +102,7 @@
     return `<tr class="ranked" data-slug="${esc(r.slug)}"><td class="rk"><b>${r.rank}</b><small>${r.boot.rankLo}–${r.boot.rankHi}</small></td>
       <td class="name"><a href="#p/${esc(r.slug)}">${esc(r.name)}</a>${r.watch ? '<i class="tag">watchlist</i>' : ''}${tag ? `<i class="tag grey" title="${esc(r.note)}">${tag}</i>` : ''}<small>${esc(r.category || 'no category')} · ${[on, ...r.chains.filter((c) => c !== on)].filter(Boolean).slice(0, 2).map((c) => (c === on ? `<b>${esc(L.chainName(c))}</b>` : esc(L.chainName(c)))).join(', ')}${r.chains.length > 2 ? ` +${r.chains.length - 2}` : ''}</small></td>
       <td class="val"><b>${usd(r.iv.value)}</b><small>P25–P75 ${usd(r.boot.p25)}–${usd(r.boot.p75)}</small></td><td>${bandBar(r)}</td>
-      <td class="num">${usd(r.tvl_usd)}</td><td class="num ${r.change_7d > 0 ? 'up' : ''}">${pct(r.change_7d)}</td><td class="num" title="${r.iv.days === null ? 'no listing date: 365 assumed' : ''}">${r.iv.days === null ? '365*' : r.iv.days}</td>
+      <td class="num">${usd(r.tvl_usd)}</td><td class="num ${r.change_7d > 0 ? 'up' : ''}">${pct(r.change_7d)}</td><td class="num">${r.iv.days === null ? '365*' : r.iv.days}</td>
       <td class="num">${odds(p.breakEven)}</td>${net}<td><i class="verdict v-${p.verdict}">${L.VERDICT_LABEL[p.verdict]}</i></td></tr>`;
   }
   function anchorHtml(t) {
@@ -134,8 +131,7 @@
     }
     const chip = (key, val, label, n) => `<button class="chip ${st[key] === val ? 'on' : ''}" data-k="${key}" data-v="${esc(val)}">${esc(label)} <small>${n}</small></button>`;
     const chains = Object.keys(chainCount).sort((a, b) => chainCount[b] - chainCount[a] || (a < b ? -1 : 1)).slice(0, 30);
-    $('#view').innerHTML = `${kpis()}
-      <p class="explain">Implied value = size curve on TVL × category family, both fit on ${M.traded.length} traded tokens, × bounded tilts for 7-day growth (×${L.MODEL.growthMin}–${L.MODEL.growthMax}) and time tracked with no token recorded (down to ×${1 - L.MODEL.seasonDepth}; 365* = no listing date, assumed). Under each rank: its P10–P90 rank over 200 refits; the band adds a protocol's own miss. Big pools farm poorly: $5,000 is a thin slice.</p>
+    $('#view').innerHTML = `${kpis()}${heroHtml()}
       <div class="toolbar">
         <div class="group seg">${chip('tab', '', 'Still to come', M.rows.length)}${chip('tab', 'traded', 'Already trades', M.traded.length)}</div>
         <input id="q" type="search" placeholder="Search a protocol" value="${esc(st.q)}" aria-label="Search">
@@ -183,10 +179,9 @@
     const th = (key, cls) => `<th class="${cls || ''}">${sk(key)}</th>`;
     $('#results').innerHTML = `<div class="status">${active}<span><b>${shown.length}</b> of ${M.rows.length} ranked shown${anchors.length ? `, ${anchors.length} traded anchors` : ''} · sorted by ${HEAD[st.sort]}</span></div>
       <table class="board"><thead><tr><th class="rk">#</th>${th('name')}${th('value')}<th>P25–P75 band</th>${['tvl', 'growth', 'days', 'odds'].map((k) => th(k, 'num')).join('')}<th class="num">${sk('net')}<br>${sk('perhour')}</th><th>Farm verdict</th></tr></thead>
-      <tbody>${body.join('') || '<tr><td colspan="10" class="empty">No ranked protocol matches these filters; remove a chip above.</td></tr>'}</tbody></table>`;
+      <tbody>${body.join('') || '<tr><td colspan="10" class="empty">No match; remove a chip above.</td></tr>'}</tbody></table>`;
   }
 
-  // -- the detail view
 
   /** The value as an equation: size curve x each multiplier. */
   function equationHtml(r) {
@@ -250,20 +245,37 @@
       </div>`;
   }
 
-  // -- the method view
 
-  function scatterSvg() {
-    const x = (v) => 70 + ((Math.log10(v) - 6.5) / 4.5) * 540, y = (v) => 370 - ((Math.log10(v) - 4) / 7) * 350;
+  /** The market line, H units tall; used by the board band and the method view. */
+  function scatterSvg(H) {
+    const b = H - 34, x = (v) => 70 + ((Math.log10(v) - 6.5) / 4.5) * 540, y = (v) => b - ((Math.log10(v) - 4) / 7) * (b - 20);
     let grid = '';
     const tick = (e) => ['$10K', '$100K', '$1M', '$10M', '$100M', '$1B', '$10B', '$100B'][e - 4];
-    for (let e = 7; e <= 10; e++) grid += `<line class="g" x1="${x(10 ** e)}" x2="${x(10 ** e)}" y1="20" y2="370"/><text x="${x(10 ** e)}" y="388" text-anchor="middle">${tick(e)}</text>`;
-    for (let e = 4; e <= 11; e++) grid += `<line class="g" x1="70" x2="610" y1="${y(10 ** e)}" y2="${y(10 ** e)}"/><text x="62" y="${y(10 ** e) + 4}" text-anchor="end">${tick(e)}</text>`;
+    for (let e = 7; e <= 10; e++) grid += `<line class="g" x1="${x(10 ** e)}" x2="${x(10 ** e)}" y1="20" y2="${b}"/><text x="${x(10 ** e)}" y="${b + 18}" text-anchor="middle">${tick(e)}</text>`;
+    for (let e = 4; e <= 11; e += H < 300 ? 2 : 1) grid += `<line class="g" x1="70" x2="610" y1="${y(10 ** e)}" y2="${y(10 ** e)}"/><text x="62" y="${y(10 ** e) + 5}" text-anchor="end">${tick(e)}</text>`;
     const traded = M.traded.map((t) => `<circle class="t" cx="${x(t.tvl_usd).toFixed(1)}" cy="${y(t.mcap_usd).toFixed(1)}" r="3.5"/>`).join('');
     const ranked = M.rows.map((r) => `<rect class="r" x="${(x(r.tvl_usd) - 2.5).toFixed(1)}" y="${(y(r.iv.value) - 2.5).toFixed(1)}" width="5" height="5"/>`).join('');
     const line = (tvl) => 10 ** (M.fit.a + M.fit.b * (Math.log10(tvl) - L.MODEL.centerLogTvl));
-    return `<svg class="scatter" viewBox="0 0 620 404" role="img" aria-label="Fit of market cap on TVL">${grid}${traded}${ranked}
+    return `<svg class="scatter" viewBox="0 0 620 ${H}" role="img" aria-label="Fit of market cap on TVL">${grid}${traded}${ranked}
       <line class="fit" x1="${x(10 ** 6.5)}" y1="${y(line(10 ** 6.5))}" x2="${x(1e11)}" y2="${y(line(1e11))}"/>
-      <text class="lab" x="610" y="402" text-anchor="end">TVL (log scale)</text><text class="lab" x="76" y="16">market cap, or implied value (log scale)</text></svg>`;
+      <text class="lab" x="610" y="${H - 2}" text-anchor="end">TVL</text><text class="lab" x="76" y="16">market cap or implied value</text></svg>
+      <p class="legend"><b class="t">●</b> trades <b class="r">■</b> still to come, at implied value <b>—</b> fitted curve</p>`;
+  }
+
+  /** Board band: formula from the fitted numbers, market line, out-of-sample test. */
+  function heroHtml() {
+    const f = M.fit, m = L.MODEL, loo = M.R.loo, fam = Object.values(f.fam).map((o) => (10 ** o).toFixed(2));
+    const best = M.rows.filter((r) => r.watch).sort((p, q) => q.plan.perHour - p.plan.perHour).slice(0, 3);
+    return `<section class="hero"><div class="card"><h2>How a value is built <small>impliedValue</small></h2><ol>
+      <li><b>Size curve</b> log10 value = ${f.a.toFixed(2)} + ${f.b.toFixed(2)} × log10(TVL / $100M): ×${(10 ** f.b).toFixed(1)} per 10× TVL, fit on ${M.traded.length} traded tokens</li>
+      <li><b>× family</b> ×${Math.min(...fam)}–×${Math.max(...fam)} by category, fit too</li>
+      <li><b>× 7-day growth</b> 1 + ${m.growthWeight} × change, held to ×${m.growthMin}–×${m.growthMax}</li>
+      <li><b>× days tracked</b> 1 − ${m.seasonDepth}·e<sup>−days/${m.seasonDays}</sup> (365* if no date)</li></ol>
+      <p>Rank range: P10–P90 over 200 refits; the band adds a protocol's own miss.</p></div>
+      <div class="card">${scatterSvg(250)}</div>
+      <div class="card"><h2>Out of sample <small>looCheck, ${loo[3].n} traded tokens</small></h2>
+      <p><b>${loo[3].medianMiss.toFixed(1)}×</b> median miss against ${loo[0].medianMiss.toFixed(1)}× for one flat multiple; <b>${Math.round(loo[3].within3x * 100)}%</b> within 3×; rank corr. ${loo[3].rankCorr.toFixed(2)}. The tilts move ${M.R.moves.five} of ${M.rows.length} ranks 5+ places.</p>
+      <h2>Best net per hands-on hour, watchlist</h2><p>${best.map((r) => `<a href="#p/${esc(r.slug)}">${esc(r.name)}</a> <b>${usd(r.plan.perHour)}/h</b>`).join(' · ')}</p></div></section>`;
   }
 
   function renderMethod() {
@@ -276,22 +288,20 @@
     u.setAside.forEach((s) => { const k = s.reason.startsWith('shares') ? 'shares a name with a protocol that records a token' : s.reason.split(/[:,]/)[0]; why[k] = (why[k] || 0) + 1; });
     const ranked = M.rows.length, traded = M.traded.length, aside = u.setAside.length;
     $('#view').innerHTML = `<div class="method">
-      <section class="card"><h2>The fit: ${traded} traded tokens, market cap against TVL</h2>${scatterSvg()}
-        <p class="legend"><b class="t">●</b> traded token <b class="r">■</b> ranked protocol at its implied value <b>—</b> size curve: log10 value = ${f.a.toFixed(2)} + ${f.b.toFixed(2)} × log10(TVL / $100M)</p>
-        <p>A token's market cap grows with TVL at a slope of ${f.b.toFixed(2)}: ten times the TVL is worth ${(10 ** f.b).toFixed(1)} times the value, so small protocols carry a higher multiple than large ones.</p>
+      <section class="card"><h2>The fit: ${traded} traded tokens, market cap against TVL</h2>${scatterSvg(404)}
         <div class="judge"><h2>Note to the judge</h2><ol>
           <li>Working radar: <code>deriveAll</code> runs <code>buildRadar</code> on the raw snapshot in this browser; <code>selectUniverse</code> ranks ${M.watch} of ${S.watchlist.length} watchlist protocols plus ${ranked - M.watch} more; every row is checked against board.json (${M.check.ok ? 'all match' : 'see the board'}).</li>
-          <li>Value model: <code>impliedValue</code> uses TVL, category family, 7-day change and days since listing, never a name; <code>fitCurve</code> fits it on traded tokens, <code>looCheck</code> tests it, <code>bootstrapRanks</code> gives bands and rank ranges; the growth and seasoning tilts move ${M.R.moves.five} of ${ranked} ranks 5+ places.</li>
+          <li>Value model: <code>impliedValue</code> uses TVL, category family, 7-day change and days since listing, never a name; <code>fitCurve</code> fits it on traded tokens, <code>looCheck</code> tests it, <code>bootstrapRanks</code> gives bands and rank ranges.</li>
           <li>Farm plans: <code>farmPlan</code> sets chain, deposit, hold and stop from each row's data, with cost, time and break-even odds.</li>
           <li>Page: <code>filterRows</code>, <code>sortRows</code>, <code>renderDetail</code>; state lives in the URL hash.</li>
         </ol></div></section>
       <section class="card"><h2>Out of sample: each traded token priced by a fit that never saw it</h2>
         <table class="mini"><thead><tr><th>Model</th><th class="num">Median miss</th><th class="num">Mean |log miss|</th><th class="num">Within 3×</th><th class="num">Rank corr.</th></tr></thead><tbody>${looRows}</tbody></table>
-        <p>Size curve and family earn their place. Growth and seasoning move the median miss ${loo[2].medianMiss.toFixed(2)}×→${loo[3].medianMiss.toFixed(2)}×, within 3× ${Math.round(loo[2].within3x * 100)}→${Math.round(loo[3].within3x * 100)}%, mean |log miss| ${loo[2].meanLogMiss.toFixed(3)}→${loo[3].meanLogMiss.toFixed(3)}: no real gain (${M.traded.filter((t) => t.change_7d < 0).length} of ${traded} traded tokens lost TVL this week; a traded token's age is not time without a token). So both are bounded priors: growth tilts value by half the 7-day change (×${L.MODEL.growthMin}–×${L.MODEL.growthMax}); seasoning discounts a new protocol up to ${L.MODEL.seasonDepth * 100}%, fading over ${L.MODEL.seasonDays} days. They move ${M.R.moves.five} of ${ranked} ranks by 5+ places, ${M.R.moves.ten} by 10+. Rank corr. tests the ranking itself (Spearman's rho inside 8 held-out folds): about ${loo[0].rankCorr.toFixed(1)} for every variant, so order comes from TVL.</p>
+        <p>Size curve and family earn their place; growth and seasoning do not (${M.traded.filter((t) => t.change_7d < 0).length} of ${traded} traded tokens lost TVL this week; a traded token's age is not time without a token), so both are bounded priors. They move ${M.R.moves.five} of ${ranked} ranks 5+ places, ${M.R.moves.ten} by 10+. Rank corr. (Spearman inside 8 held-out folds) is about ${loo[0].rankCorr.toFixed(1)} for every variant: order comes from TVL.</p>
         <h2>Category family offsets <small>mean miss, each capped at 10×, shrunk by ${L.MODEL.familyShrinkK} pseudo-tokens (traded count)</small></h2><p>${fams}</p>
         <h2>From ${S.protocols.length} protocols to ${ranked} ranks</h2>
         <p>${traded} trade (fit and anchors) · ${u.recorded} record a token with no market cap (not ranked) · ${ranked + aside} record no token: ${ranked} ranked, ${aside} set aside as ${Object.keys(why).map((k) => `${esc(k)} (${why[k]})`).join(', ')}.</p>
-        <h2>Farm verdicts</h2><p>Worth farming at break-even odds of ${A.farmOdds * 100}% or less (it pays if 1 hold in ${1 / A.farmOdds} sees a launch), marginal to ${A.marginalOdds * 100}%, else skip. A 7-day TVL fall past ${A.capDrop}% caps it at marginal (${M.rows.filter((r) => r.plan.capped).length} row here).</p></section></div>`;
+        <h2>Farm verdicts</h2><p>Worth farming at break-even odds ≤${A.farmOdds * 100}% (pays if 1 hold in ${1 / A.farmOdds} sees a launch), marginal ≤${A.marginalOdds * 100}%, else skip; a 7-day TVL fall past ${A.capDrop}% caps it at marginal (${M.rows.filter((r) => r.plan.capped).length} row).</p></section></div>`;
   }
 
   function route() {
