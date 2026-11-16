@@ -328,7 +328,7 @@
     if (c === 'Derivatives' || c === 'Options') return act(`Deposit ${d} into ${n}'s liquidity vault ${on}; it takes the other side of traders and can lose in sharp moves.`, 15, 'vault lockups often run 1 to 4 days');
     if (c === 'Prediction Market' || c === 'OTC Marketplace') return act(`Fund ${n} ${on} with ${d} and keep it as resting liquidity, not open bets.`, 15, 'no lock');
     if (c === 'Chain') return act(`On ${n}, put ${d} into the largest app DefiLlama lists for the chain; if none, holding the bridged ${asset} is the position.`, 25, 'the bridge back can take 7 days');
-    if (c === 'Payments') return act(`Open a ${d} payment channel on ${n} with a well-connected node and keep it open.`, 30, 'a channel close settles on-chain in about an hour');
+    if (c === 'Payments') return act(`Open a payment channel of ${d} on ${n} with a well-connected node and keep it open.`, 30, 'a channel close settles on-chain in about an hour');
     if (c === 'Insurance') return act(`Provide ${d} of cover capital to ${n}'s pool ${on}; a paid claim can draw it down.`, 20, 'cover pools often hold capital 7 to 30 days');
     if (c === 'CDP' || c === 'CDP Manager') return act(`Swap ${d} for ${n}'s own stablecoin ${on} and deposit it in its stability or savings pool; open no vault, mint nothing.`, 15, 'savings pools usually exit at once', swap);
     if (c === 'Collateral Markets') return act(`Deposit ${d} into ${n}'s largest vault that takes it ${on}; read the vault's withdrawal epoch first.`, 20, 'exits wait for the vault epoch, often 7 days');
@@ -352,7 +352,7 @@
     const weeks = holdWeeks(days), exitDay = weeks * 7;
     const slicePerDollar = (ASSUME.airdropShare * value) / p.tvl_usd;
     const asset = fundingAsset(p, chain);
-    const bridge = familyOf(p.category) === 'stake' ? 0 : ASSUME.bridgeFee; // staking uses coin already on the chain
+    const bridge = asset === 'USDC' ? ASSUME.bridgeFee : 0; // a native coin is one you already hold there: no bridge, no buying
     const deposit = clamp(roundDeposit(Math.max(p.tvl_usd * ASSUME.depositPerTvl, (3 * (8 * gas + 2 * bridge)) / slicePerDollar)), ASSUME.depositMin, ASSUME.depositMax);
     const drop = stopDropPct(p.change_7d);
     const stopTvl = p.tvl_usd * (1 - drop / 100);
