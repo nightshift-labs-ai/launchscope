@@ -37,9 +37,9 @@
   const DEFAULTS = { tab: '', fam: '', chain: '', verdict: '', watch: '', q: '', anchors: '1', sort: 'value', dir: 'desc' };
   const SORTS = {
     value: (r) => r.iv.value, name: (r) => r.name.toLowerCase(), tvl: (r) => r.tvl_usd, growth: (r) => (r.change_7d === null ? -1e9 : r.change_7d),
-    days: (r) => (r.iv.days === null ? -1 : r.iv.days), odds: (r) => r.plan.breakEven, net: (r) => r.plan.net,
+    days: (r) => (r.iv.days === null ? -1 : r.iv.days), odds: (r) => r.plan.breakEven, net: (r) => r.plan.net, perhour: (r) => r.plan.perHour,
   };
-  const HEAD = { name: 'Protocol', value: 'Implied value', tvl: 'TVL', growth: '7d TVL', days: 'Days, no token', odds: 'Break-even odds', net: 'Net if launch' };
+  const HEAD = { name: 'Protocol', value: 'Implied value', tvl: 'TVL', growth: '7d TVL', days: 'Days, no token', odds: 'Break-even odds', net: 'Net if launch', perhour: '$/hour' };
 
   function readHash() {
     const h = decodeURIComponent(location.hash.slice(1));
@@ -103,7 +103,7 @@
   const NOTE_TAG = { off: 'parented', named: 'chain-named', shares: 'name shared' };
   function rowHtml(r) {
     const p = r.plan, tag = r.note && NOTE_TAG[r.note.split(' ')[0]];
-    const net = p.net < 0 ? `<td class="num neg"><b>needs ${L.usd(r.iv.value * p.breakEven)}</b><small>launch value to pay</small></td>` : `<td class="num"><b>${L.usd(p.net)}</b><small>on ${L.usd(p.deposit)}, ${p.weeks} wk</small></td>`;
+    const net = p.net < 0 ? `<td class="num neg"><b>needs ${L.usd(r.iv.value * p.breakEven)}</b><small>launch value to pay</small></td>` : `<td class="num"><b>${L.usd(p.net)}</b><small>${L.usd(p.perHour)}/h · ${p.weeks} wk</small></td>`;
     return `<tr class="ranked" data-slug="${esc(r.slug)}"><td class="rk"><b>${r.rank}</b><small>${r.boot.rankLo}–${r.boot.rankHi}</small></td>
       <td class="name"><a href="#p/${esc(r.slug)}">${esc(r.name)}</a>${r.watch ? '<i class="tag">watchlist</i>' : ''}${tag ? `<i class="tag grey" title="${esc(r.note)}">${tag}</i>` : ''}<small>${esc(r.category || 'no category')} · ${esc(r.chains.slice(0, 2).map(L.chainName).join(', '))}${r.chains.length > 2 ? ` +${r.chains.length - 2}` : ''}</small></td>
       <td class="val"><b>${L.usd(r.iv.value)}</b><small>P25–P75 ${L.usd(r.boot.p25)}–${L.usd(r.boot.p75)}</small></td><td>${bandBar(r)}</td>
@@ -149,7 +149,7 @@
       <div id="results"></div>`;
     renderResults(st);
     $('#view').onclick = (e) => {
-      const b = e.target.closest('button.chip, th[data-s], button.x');
+      const b = e.target.closest('button.chip, [data-s], button.x');
       if (b && b.dataset.k) { st[b.dataset.k] = st[b.dataset.k] === b.dataset.v ? '' : b.dataset.v; return update(st, true); }
       if (b && b.dataset.s) { st.dir = st.sort === b.dataset.s && st.dir === 'desc' ? 'asc' : b.dataset.s === 'odds' || b.dataset.s === 'name' ? 'asc' : 'desc'; st.sort = b.dataset.s; return update(st, true); }
       const tr = e.target.closest('tr.ranked');
@@ -179,9 +179,10 @@
       const label = k === 'fam' ? L.FAMILY_LABEL[st.fam] : k === 'verdict' ? L.VERDICT_LABEL[st.verdict] : k === 'watch' ? 'Watchlist only' : k === 'q' ? `“${st.q}”` : st.chain;
       return `<button class="chip on x" data-k="${k}" data-v="${esc(st[k])}">${esc(label)} ✕</button>`;
     }).join('');
-    const th = (key, cls) => `<th data-s="${key}" class="${cls || ''} ${st.sort === key ? 'sorted' : ''}">${HEAD[key]}${st.sort === key ? (st.dir === 'asc' ? ' ▲' : ' ▼') : ''}</th>`;
-    $('#results').innerHTML = `<div class="status">${active}<span><b>${shown.length}</b> of ${M.rows.length} ranked shown${anchors.length ? `, ${anchors.length} traded anchors` : ''} · sorted by ${HEAD[st.sort].toLowerCase()}</span></div>
-      <table class="board"><thead><tr><th class="rk">#</th>${th('name')}${th('value')}<th>P25–P75 band</th>${['tvl', 'growth', 'days', 'odds', 'net'].map((k) => th(k, 'num')).join('')}<th>Farm verdict</th></tr></thead>
+    const sk = (key) => `<span data-s="${key}" class="${st.sort === key ? 'sorted' : ''}">${HEAD[key]}${st.sort === key ? (st.dir === 'asc' ? ' ▲' : ' ▼') : ''}</span>`;
+    const th = (key, cls) => `<th class="${cls || ''}">${sk(key)}</th>`;
+    $('#results').innerHTML = `<div class="status">${active}<span><b>${shown.length}</b> of ${M.rows.length} ranked shown${anchors.length ? `, ${anchors.length} traded anchors` : ''} · sorted by ${HEAD[st.sort]}</span></div>
+      <table class="board"><thead><tr><th class="rk">#</th>${th('name')}${th('value')}<th>P25–P75 band</th>${['tvl', 'growth', 'days', 'odds'].map((k) => th(k, 'num')).join('')}<th class="num">${sk('net')}<br>${sk('perhour')}</th><th>Farm verdict</th></tr></thead>
       <tbody>${body.join('') || '<tr><td colspan="10" class="empty">No ranked protocol matches these filters; remove a chip above.</td></tr>'}</tbody></table>`;
   }
 
@@ -243,7 +244,7 @@
           <h2>Farm plan <small>${esc(p.chain)} · ${L.usd(p.deposit)} · ${p.weeks} weeks</small><i class="verdict v-${p.verdict}">${L.VERDICT_LABEL[p.verdict]}</i></h2>
           ${timelineSvg(p)}
           <table class="steps"><thead><tr><th>#</th><th>When</th><th>Step</th><th class="num">Cost</th><th class="num">Time</th></tr></thead><tbody>${steps}</tbody></table>
-          <div class="totals"><div><span>Fees and gas</span><b>${L.usd(p.costs)}</b></div><div><span>Income forgone</span><b>${L.usd(p.capitalCost)}</b></div><div><span>Your time</span><b>${Math.round(p.minutes)} min</b></div><div><span>Slice if a token launches</span><b>${L.usd(p.slice)}</b></div><div><span>Break-even launch odds</span><b>${odds(p.breakEven)}</b></div></div>
+          <div class="totals"><div><span>Fees and gas</span><b>${L.usd(p.costs)}</b></div><div><span>Income forgone</span><b>${L.usd(p.capitalCost)}</b></div><div><span>Your time</span><b>${Math.round(p.minutes)} min</b></div><div><span>Slice if launch</span><b>${L.usd(p.slice)}</b></div><div><span>Break-even odds</span><b>${odds(p.breakEven)}</b></div><div><span>Net per hour</span><b>${L.usd(p.perHour)}</b></div></div>
           <ul class="honesty">${L.HONESTY.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>
         </section>
       </div>`;

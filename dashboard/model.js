@@ -10,8 +10,8 @@
     centerLogTvl: 8, // the curve is centred at $100M of TVL
     familyShrinkK: 8, // pseudo-tokens pulling each family offset toward zero
     growthWeight: 0.5, // +10% TVL in 7 days tilts value by +5%...
-    growthMin: 0.8, // ...never below x0.80
-    growthMax: 1.25, // ...never above x1.25
+    growthMin: 0.8, // ...within x0.80 to x1.25
+    growthMax: 1.25,
     seasonDepth: 0.4, // a protocol tracked for 0 days is discounted 40%...
     seasonDays: 240, // ...and the discount fades with this time constant (days)
     unknownDays: 365, // no listed_at: assume one year
@@ -383,7 +383,7 @@
     const breakEven = (costs + capitalCost) / slice;
     const odds = Math.round(breakEven * 100); // the verdict reads the odds as shown
     const verdict = odds <= ASSUME.farmOdds * 100 ? 'farm' : odds <= ASSUME.marginalOdds * 100 ? 'marginal' : 'skip';
-    return { chain: cn, gas, asset, deposit, weeks, drop, stopTvl, steps, costs, minutes, carry, capitalCost, slice, net, breakEven, verdict };
+    return { chain: cn, gas, asset, deposit, weeks, drop, stopTvl, steps, costs, minutes, carry, capitalCost, slice, net, breakEven, verdict, perHour: net / (minutes / 60) };
   }
 
   const VERDICT_LABEL = { farm: 'Worth farming', marginal: 'Marginal', skip: 'Skip' };
