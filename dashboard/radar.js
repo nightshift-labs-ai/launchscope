@@ -136,7 +136,7 @@
     const chip = (key, val, label, n) => `<button class="chip ${st[key] === val ? 'on' : ''}" data-k="${key}" data-v="${esc(val)}">${esc(label)} <small>${n}</small></button>`;
     const chains = Object.keys(chainCount).sort((a, b) => chainCount[b] - chainCount[a] || (a < b ? -1 : 1)).slice(0, 30);
     $('#view').innerHTML = `${kpis()}
-      <p class="explain">Implied value = size curve on TVL × category family × 7-day growth × time without a token, fit on ${M.traded.length} traded tokens. Under each rank: its P10–P90 rank over 200 refits; the band adds a protocol's own miss. Big pools farm poorly: $5,000 is a thin slice. Grey rows trade already: no rank.</p>
+      <p class="explain">Implied value = size curve on TVL × category family, both fit on ${M.traded.length} traded tokens, × bounded tilts for 7-day growth (×${L.MODEL.growthMin}–${L.MODEL.growthMax}) and time with no token (down to ×${1 - L.MODEL.seasonDepth}). Under each rank: its P10–P90 rank over 200 refits; the band adds a protocol's own miss. Big pools farm poorly: $5,000 is a thin slice. Grey rows trade already: no rank.</p>
       <div class="toolbar">
         <div class="group seg">${chip('tab', '', 'Still to come', M.rows.length)}${chip('tab', 'traded', 'Already trades', M.traded.length)}</div>
         <input id="q" type="search" placeholder="Search a protocol" value="${esc(st.q)}" aria-label="Search">
